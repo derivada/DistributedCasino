@@ -1,0 +1,70 @@
+// custom.scss
+
+// 1. Include functions first (so you can manipulate colors, SVGs, calc, etc)
+@import "node_modules/bootstrap/scss/functions.scss";
+
+// 2. Include any default variable overrides here
+
+$primary:       rgb(9, 183, 148); // Override the primary color of the page
+
+
+// 3. Include remainder of required Bootstrap stylesheets (including any separate color mode stylesheets)
+@import "node_modules/bootstrap/scss/variables";
+@import "node_modules/bootstrap/scss/variables-dark";
+
+// 4. Include any default map overrides here
+
+
+// 5. Include remainder of required parts
+@import "node_modules/bootstrap/scss/maps";
+@import "node_modules/bootstrap/scss/mixins";
+@import "node_modules/bootstrap/scss/root";
+
+// 6. Include overrides for other components
+
+// Dumb example of overriding properties instead of variables, because I don't know if there is a variable
+// for custom backgrounds in button
+
+
+// 7. Optionally include any other parts as needed
+@import "node_modules/bootstrap/scss/buttons";
+@import "node_modules/bootstrap/scss/utilities";
+@import "node_modules/bootstrap/scss/reboot";
+@import "node_modules/bootstrap/scss/type";
+@import "node_modules/bootstrap/scss/images";
+@import "node_modules/bootstrap/scss/containers";
+@import "node_modules/bootstrap/scss/grid";
+@import "node_modules/bootstrap/scss/helpers";
+
+// 8. Optionally include utilities API last to generate classes based on the Sass map in `_utilities.scss`
+@import "node_modules/bootstrap/scss/utilities/api";
+
+// 9. Add custom code
+
+/* Alphatab Highligting */
+.at-cursor-bar {
+    /* Defines the color of the bar background when a bar is played */
+    background: $primary;
+    opacity: 20%;
+}
+
+.at-selection div {
+    /* Defines the color of the selection background */
+    background: $primary;
+    opacity: 40%;
+}
+
+.at-cursor-beat {
+    /* Defines the beat cursor */
+    background: $primary;
+    width: 4px;
+}
+
+.at-highlight * {
+    /* Defines the color of the music symbols when they are being played (svg) */
+    fill: $indigo-500;
+    stroke: $indigo-500;
+}
+
+// 10. Import whatever was not imported before
+@import "node_modules/bootstrap/scss/bootstrap";
