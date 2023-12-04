@@ -7,6 +7,14 @@ contract Coinflip {
     address payable public heads = payable(address(0x0));
     address payable public tails = payable(address(0x0));
     
+    uint256 heads_bet;
+
+
+    struct Payment {
+        address addr;
+        int256 amount; // The amount (positive or negativeo) to be modified from the account
+    }
+
     uint256 min_bet = 1;
     
     bool heads_start = false;
@@ -53,11 +61,11 @@ contract Coinflip {
 
         if(heads_start && tails_start) {
             // Start the coinflip
-            coinFlip();
+            startGame();
         }
     }
 
-    function coinFlip() private {
+    function startGame() private {
         uint256 randomNumber = uint256(keccak256(abi.encodePacked(blockhash( block.number), block.timestamp)));
         bool result = (randomNumber % 2) == 0;
         emit CoinFlipResult(result, address(this).balance);
@@ -66,5 +74,9 @@ contract Coinflip {
         } else {
             tails.transfer(address(this).balance);
         }
+    }
+
+    function payUsers() private {
+        
     }
 }
