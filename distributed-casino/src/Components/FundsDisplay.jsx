@@ -6,59 +6,13 @@ import mainContractService from "../Contracts/MainContractService";
 
 import "../Styles/custom.css";
 
-function FundsDisplay({display}) {
-    //const [web3, setWeb3] = useState(null);
-    const [account, setAccount] = useState(null);
-    const [funds, setFunds] = useState("0");
-
-    useEffect(() => {
-        if (display) {
-            mainContractService.init().then(() => {
-
-                mainContractService.getAccount().then((result) => {
-                    setAccount(result);
-
-                })
-
-                mainContractService.getFunds().then((result) => {
-                    setFunds(result.toString() + ' ETH');
-                })
-            })
-            
-        // Check if Web3 is injected by the browser (MetaMask)
-        /*if (window.ethereum) {
-            const web3Instance = new Web3(window.ethereum);
-            setWeb3(web3Instance);
-
-            // Request account access if needed
-            window.ethereum
-                .request({ method: "eth_requestAccounts" })
-                .then((accounts) => {
-                    setAccount(accounts[0]);
-                    web3Instance.eth.getBalance(accounts[0]).then((balanceWei) => {
-                        const balanceEth = web3Instance.utils.fromWei(balanceWei, "ether");
-                        setFunds(balanceEth);
-                    }).catch((error) => {
-                        console.error(error);
-                    });
-                })
-                .catch((error) => {
-                    console.error(error);
-                });
-        } else {
-            console.error(
-                "MetaMask not detected! Please install MetaMask extension."
-            );
-        }*/
-        }
-    },[display])
-
+function FundsDisplay({ account, funds }) {
     return (
-        <div className="card rounded col-3 m-2 px-2 rounded bg-primary-subtle">
-            Account: {account}
-            <br/>
-            Funds: {funds}
-        </div>
+        <section className="mt-5 rounded px-2">
+            <h2 className="fw-semibold">Current Funds</h2>
+            <h5>Account: <p className="font-monospace text-primary mb-3">{account ?? 'Not linked'}</p></h5>
+            <h3>Funds: <p className="text-primary">{funds+" ETH"}</p></h3>
+        </section>
     );
 }
 

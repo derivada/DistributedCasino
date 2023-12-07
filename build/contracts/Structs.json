@@ -15,15 +15,15 @@
     "absolutePath": "project:/contracts/Structs.sol",
     "exportedSymbols": {
       "Structs": [
-        1314
+        1325
       ]
     },
-    "id": 1315,
+    "id": 1326,
     "license": "MIT",
     "nodeType": "SourceUnit",
     "nodes": [
       {
-        "id": 1308,
+        "id": 1319,
         "literals": [
           "solidity",
           "0.8",
@@ -39,9 +39,9 @@
         "contractDependencies": [],
         "contractKind": "library",
         "fullyImplemented": true,
-        "id": 1314,
+        "id": 1325,
         "linearizedBaseContracts": [
-          1314
+          1325
         ],
         "name": "Structs",
         "nameLocation": "68:7:2",
@@ -49,16 +49,16 @@
         "nodes": [
           {
             "canonicalName": "Structs.Payment",
-            "id": 1313,
+            "id": 1324,
             "members": [
               {
                 "constant": false,
-                "id": 1310,
+                "id": 1321,
                 "mutability": "mutable",
                 "name": "addr",
                 "nameLocation": "192:4:2",
                 "nodeType": "VariableDeclaration",
-                "scope": 1313,
+                "scope": 1324,
                 "src": "184:12:2",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -67,7 +67,7 @@
                   "typeString": "address"
                 },
                 "typeName": {
-                  "id": 1309,
+                  "id": 1320,
                   "name": "address",
                   "nodeType": "ElementaryTypeName",
                   "src": "184:7:2",
@@ -81,12 +81,12 @@
               },
               {
                 "constant": false,
-                "id": 1312,
+                "id": 1323,
                 "mutability": "mutable",
                 "name": "amount",
                 "nameLocation": "214:6:2",
                 "nodeType": "VariableDeclaration",
-                "scope": 1313,
+                "scope": 1324,
                 "src": "207:13:2",
                 "stateVariable": false,
                 "storageLocation": "default",
@@ -95,7 +95,7 @@
                   "typeString": "int256"
                 },
                 "typeName": {
-                  "id": 1311,
+                  "id": 1322,
                   "name": "int256",
                   "nodeType": "ElementaryTypeName",
                   "src": "207:6:2",
@@ -110,12 +110,12 @@
             "name": "Payment",
             "nameLocation": "165:7:2",
             "nodeType": "StructDefinition",
-            "scope": 1314,
+            "scope": 1325,
             "src": "158:140:2",
             "visibility": "public"
           }
         ],
-        "scope": 1315,
+        "scope": 1326,
         "src": "60:241:2",
         "usedErrors": []
       }
@@ -130,12 +130,12 @@
     "5777": {
       "events": {},
       "links": {},
-      "address": "0x607268bE030aA28A289A77e8b40f7544fD4478b1",
-      "transactionHash": "0x4d5cd4bb2d613ef55d4bdb1ca4eb5bab660c87d953b90881270fb3448bd9fc81"
+      "address": "0x5D7cb153c13fdE21E13b511cf17790b36E9896D4",
+      "transactionHash": "0x434d3844d6c0871a70c5fe82cf6f48bb7883b9ec4815c8d142b3b0b4e3605d32"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2023-12-07T19:42:33.272Z",
+  "updatedAt": "2023-12-07T23:23:31.745Z",
   "networkType": "ethereum",
   "devdoc": {
     "kind": "dev",

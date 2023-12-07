@@ -58,9 +58,10 @@ contract Main {
 
 
     // Let's a user retrieve his funds from the casino
-    function retrieveFunds() external {
-        payable(msg.sender).transfer(userFunds[msg.sender].funds); 
-        userFunds[msg.sender].funds = 0;
+    function retrieveFunds(uint256 amount) external {
+        require(amount <= userFunds[msg.sender].funds, "The user doesn't have anough funds");
+        payable(msg.sender).transfer(amount); 
+        userFunds[msg.sender].funds -= amount;
     }
 
     // Gets the user funds
