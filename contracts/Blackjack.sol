@@ -7,13 +7,14 @@ import "./Structs.sol";
 interface Main {
 
     // The neccesary functions from the Main contract
-    function getFunds() external view returns (uint256);
+    function getFunds(address user) external view returns (uint256);
     function getCasinoFunds() external view returns (uint256);
     function modifyFunds(Structs.Payment[] memory payments, bool zero_sum) external;
 }
 
 contract Blackjack {
     address public owner;
+    address public mainContractAddr;
     Main mainContract;
     uint256 public minimumBet;
     uint8 public maxPlayers;
@@ -77,11 +78,12 @@ contract Blackjack {
     }
 
 
-    constructor(uint256 _minimumBet, uint8 _maxPlayers, address main_contract_addr) {
+    constructor(uint256 _minimumBet, uint8 _maxPlayers, address _main_contract_addr) {
         owner = msg.sender;
         minimumBet = _minimumBet;
         maxPlayers = _maxPlayers;
-        mainContract = Main(main_contract_addr);
+        mainContractAddr = _main_contract_addr;
+        mainContract = Main(_main_contract_addr);
         phase = GamePhase.Betting;
 
         // Insert the dealer player
@@ -91,16 +93,17 @@ contract Blackjack {
     }
 
     function joinGame(uint256 bet) external inBettingPhase {
-        require(playerAddresses.length - 1 >= maxPlayers, "The maximum number of players was reached");
+        require(playerAddresses.length - 1 <= maxPlayers, "The maximum number of players was reached");
         
         require(bet >= minimumBet, "You need to bet more than the minimum bet");
 
-        require(totalBets + bet <= mainContract.getCasinoFunds(), "The casino can't afford your bet");
 
         // Check in main contract if funds are enough
-        uint256 userFunds = mainContract.getFunds();
-        require(userFunds < bet, "You don't have enough funds");
+        uint256 userFunds = mainContract.getFunds(msg.sender);
+        require(bet < userFunds, "You don't have enough funds");
         
+        require(uint256((totalBets + bet) * 3  / 2) <= mainContract.getCasinoFunds(), "The casino can't afford your bet");
+
         // Check if user has already betted
         require(players[msg.sender].bet == 0, "You've already placed a bet");
 
@@ -115,8 +118,8 @@ contract Blackjack {
 
     function voteStart() external onlyPlayers inBettingPhase {
         // Check if player is registered for the game and has not voted
-        require(players[msg.sender].bet == 0, "User is not registered");
-        require(players[msg.sender].hasVoted, "User has already voted for the start of the game");
+        require(!players[msg.sender].hasVoted, "User has already voted for the start of the game");
+        players[msg.sender].hasVoted = true;
         
         // Check if all played have voted, then start the game
         bool allVoted = true;

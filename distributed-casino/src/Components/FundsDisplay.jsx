@@ -2,17 +2,31 @@ import React, { useEffect, useState } from 'react'
 
 import Web3 from "web3";
 
+import mainContractService from "../Contracts/MainContractService";
+
 import "../Styles/custom.css";
 
 function FundsDisplay({display}) {
-    const [web3, setWeb3] = useState(null);
+    //const [web3, setWeb3] = useState(null);
     const [account, setAccount] = useState(null);
-    const [funds, setFunds] = useState(0);
+    const [funds, setFunds] = useState("0");
 
     useEffect(() => {
-        if (display) {   
+        if (display) {
+            mainContractService.init().then(() => {
+
+                mainContractService.getAccount().then((result) => {
+                    setAccount(result);
+
+                })
+
+                mainContractService.getFunds().then((result) => {
+                    setFunds(result.toString() + ' ETH');
+                })
+            })
+            
         // Check if Web3 is injected by the browser (MetaMask)
-        if (window.ethereum) {
+        /*if (window.ethereum) {
             const web3Instance = new Web3(window.ethereum);
             setWeb3(web3Instance);
 
@@ -35,7 +49,7 @@ function FundsDisplay({display}) {
             console.error(
                 "MetaMask not detected! Please install MetaMask extension."
             );
-        }
+        }*/
         }
     },[display])
 

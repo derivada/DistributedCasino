@@ -31,6 +31,10 @@ contract Main {
         _;
     }
 
+    function isGameContract(address game_contract) external view returns (bool) {
+        return gameContracts[game_contract];
+    }
+
     // Add addresses of game contracts, can only be invoked by owner
     function addGameContract(address game_contract) external onlyOwner {
         gameContracts[game_contract] = true;
@@ -60,8 +64,8 @@ contract Main {
     }
 
     // Gets the user funds
-    function getFunds() external view returns (uint256) {
-        return userFunds[msg.sender].funds;
+    function getFunds(address user) external view returns (uint256) {
+        return userFunds[user].funds;
     }
 
     function getCasinoFunds() external view returns (uint256) {

@@ -8,6 +8,10 @@ import Leaderboards from './Leaderboards';
 import FundsDisplay from './FundsDisplay';
 import WalletComponent from './Wallet';
 
+import mainContractService from "../Contracts/MainContractService";
+
+
+
 const games = [
     {
         name: "Daily Pot",
@@ -39,13 +43,9 @@ const games = [
 
 function Home() {
     const [ displayFunds, setDisplayFunds ] = useState(false);
-    const aux = (val) => {
-        console.log('you')
-        setDisplayFunds(val)
-    }
     return (
         <div className="container">
-            <Navbar selectedLink="Home" setDisplayFunds={aux} />
+            <Navbar selectedLink="Home" setDisplayFunds={setDisplayFunds} />
             <div class="row">
                 <main className="col-9 mt-5 pt-5">
                     <h1 className="fw-bold">Play</h1>
@@ -59,6 +59,12 @@ function Home() {
                     <section className="m-2 py-2 rounded">
                         <h2 className="fw-semibold">Current Funds</h2>
                         <FundsDisplay display={displayFunds} />
+                        <button
+                            onClick={() => mainContractService.addFunds()}
+                            class="btn btn-outline-primary rounded fs-3"
+                        >
+                            Add funds
+                        </button>
                     </section>
                 </aside>
             </div>

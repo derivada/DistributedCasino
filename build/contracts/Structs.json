@@ -1,0 +1,150 @@
+{
+  "contractName": "Structs",
+  "abi": [],
+  "metadata": "{\"compiler\":{\"version\":\"0.8.19+commit.7dd6d404\"},\"language\":\"Solidity\",\"output\":{\"abi\":[],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project:/contracts/Structs.sol\":\"Structs\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"project:/contracts/Structs.sol\":{\"keccak256\":\"0xd8e045e4d5f8cc2924923ff3d4b96c2c7be76a94790a8963740f0d6addc3cdd6\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://5521b707fbddc24f99f86a846d94433fac3e48ff65e8564f3f48774101f1a9ea\",\"dweb:/ipfs/QmYCJ4UBKby3wXidxf7xDHhSVwbokB5ewD9SvriSVpjXi3\"]}},\"version\":1}",
+  "bytecode": "0x60566050600b82828239805160001a6073146043577f4e487b7100000000000000000000000000000000000000000000000000000000600052600060045260246000fd5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea2646970667358221220e75c5cfe8f5d3935f4f6ecfe913b96ee495e1b81902456959f0ce88f4129685864736f6c63430008130033",
+  "deployedBytecode": "0x73000000000000000000000000000000000000000030146080604052600080fdfea2646970667358221220e75c5cfe8f5d3935f4f6ecfe913b96ee495e1b81902456959f0ce88f4129685864736f6c63430008130033",
+  "immutableReferences": {},
+  "generatedSources": [],
+  "deployedGeneratedSources": [],
+  "sourceMap": "60:241:2:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;",
+  "deployedSourceMap": "60:241:2:-:0;;;;;;;;",
+  "source": "// SPDX-License-Identifier: MIT\r\npragma solidity 0.8.19;\r\n\r\nlibrary Structs {\r\n    // A payment struct containing the address and the amount to be payed\r\n    struct Payment {\r\n        address addr;\r\n        int256 amount; // The amount (positive or negativeo) to be modified from the account\r\n    }\r\n}",
+  "sourcePath": "C:\\Users\\Pablo\\Desktop\\DistributedCasino\\contracts\\Structs.sol",
+  "ast": {
+    "absolutePath": "project:/contracts/Structs.sol",
+    "exportedSymbols": {
+      "Structs": [
+        1314
+      ]
+    },
+    "id": 1315,
+    "license": "MIT",
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 1308,
+        "literals": [
+          "solidity",
+          "0.8",
+          ".19"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "33:23:2"
+      },
+      {
+        "abstract": false,
+        "baseContracts": [],
+        "canonicalName": "Structs",
+        "contractDependencies": [],
+        "contractKind": "library",
+        "fullyImplemented": true,
+        "id": 1314,
+        "linearizedBaseContracts": [
+          1314
+        ],
+        "name": "Structs",
+        "nameLocation": "68:7:2",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "canonicalName": "Structs.Payment",
+            "id": 1313,
+            "members": [
+              {
+                "constant": false,
+                "id": 1310,
+                "mutability": "mutable",
+                "name": "addr",
+                "nameLocation": "192:4:2",
+                "nodeType": "VariableDeclaration",
+                "scope": 1313,
+                "src": "184:12:2",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_address",
+                  "typeString": "address"
+                },
+                "typeName": {
+                  "id": 1309,
+                  "name": "address",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "184:7:2",
+                  "stateMutability": "nonpayable",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  }
+                },
+                "visibility": "internal"
+              },
+              {
+                "constant": false,
+                "id": 1312,
+                "mutability": "mutable",
+                "name": "amount",
+                "nameLocation": "214:6:2",
+                "nodeType": "VariableDeclaration",
+                "scope": 1313,
+                "src": "207:13:2",
+                "stateVariable": false,
+                "storageLocation": "default",
+                "typeDescriptions": {
+                  "typeIdentifier": "t_int256",
+                  "typeString": "int256"
+                },
+                "typeName": {
+                  "id": 1311,
+                  "name": "int256",
+                  "nodeType": "ElementaryTypeName",
+                  "src": "207:6:2",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_int256",
+                    "typeString": "int256"
+                  }
+                },
+                "visibility": "internal"
+              }
+            ],
+            "name": "Payment",
+            "nameLocation": "165:7:2",
+            "nodeType": "StructDefinition",
+            "scope": 1314,
+            "src": "158:140:2",
+            "visibility": "public"
+          }
+        ],
+        "scope": 1315,
+        "src": "60:241:2",
+        "usedErrors": []
+      }
+    ],
+    "src": "33:268:2"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.8.19+commit.7dd6d404.Emscripten.clang"
+  },
+  "networks": {
+    "5777": {
+      "events": {},
+      "links": {},
+      "address": "0x607268bE030aA28A289A77e8b40f7544fD4478b1",
+      "transactionHash": "0x4d5cd4bb2d613ef55d4bdb1ca4eb5bab660c87d953b90881270fb3448bd9fc81"
+    }
+  },
+  "schemaVersion": "3.4.16",
+  "updatedAt": "2023-12-07T19:42:33.272Z",
+  "networkType": "ethereum",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  }
+}
