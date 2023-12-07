@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
-contract Main {
 
+import "./Structs.sol";
+
+contract Main {
+    
     struct Users {
         uint256 funds;
         bool exists;
@@ -28,7 +31,6 @@ contract Main {
         _;
     }
 
-
     // Add addresses of game contracts, can only be invoked by owner
     function addGameContract(address game_contract) external onlyOwner {
         gameContracts[game_contract] = true;
@@ -44,16 +46,12 @@ contract Main {
         userList.push(msg.sender);
         userFunds[msg.sender].exists = true;
     }
-
-    // Gets the full list of registered user
-    function getUsers() external view returns (address[] memory) {        
-        return userList;
-    }
     
     // Adds funds to the user account
     function addFunds() external payable {
         userFunds[msg.sender].funds = msg.value + userFunds[msg.sender].funds;
     }
+
 
     // Let's a user retrieve his funds from the casino
     function retrieveFunds() external {
@@ -66,10 +64,8 @@ contract Main {
         return userFunds[msg.sender].funds;
     }
 
-    // A payment object containing the address and the amount to be payed
-    struct Payment {
-        address addr;
-        int256 amount; // The amount (positive or negativeo) to be modified from the account
+    function getCasinoFunds() external view returns (uint256) {
+        return address(this).balance;
     }
     
     /**
@@ -78,11 +74,11 @@ contract Main {
      * 1. the sum of the amounts is 0, that is, no money enters or leaves the system here (fair betting)
      * 2. all users exist and have enough money in case they are losing money here
      */
-    function modifyFunds(Payment[] memory payments) external onlyGameContracts {
+    function modifyFunds(Structs.Payment[] memory payments, bool zero_sum) external onlyGameContracts {
         int256 result = 0;
 
         for(uint256 i = 0; i < payments.length; i++) {
-            Payment memory aux = payments[i];
+            Structs.Payment memory aux = payments[i];
             if (!userFunds[aux.addr].exists)
                 revert("One of the users does not exist");
             if(aux.amount >= 0 ){
@@ -95,9 +91,8 @@ contract Main {
             result += aux.amount;
         }
         
-        if (result != 0)
-            revert("Unconsistent payments (sum of payouts was not 0)");
-
+        if (result != 0 && zero_sum)
+            revert("Unconsistent payments with 0-sum game policy (sum of payouts was not 0)");
     }
     
 }   

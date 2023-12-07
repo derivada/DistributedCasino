@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
+
+import "./Payment.sol";
+
 contract Coinflip {
 
     address public owner;
@@ -8,12 +11,6 @@ contract Coinflip {
     address payable public tails = payable(address(0x0));
     
     uint256 heads_bet;
-
-
-    struct Payment {
-        address addr;
-        int256 amount; // The amount (positive or negativeo) to be modified from the account
-    }
 
     uint256 min_bet = 1;
     
