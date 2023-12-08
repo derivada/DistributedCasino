@@ -3,7 +3,6 @@
  * @param {int} card_id ID of the card, between 1 and 52
  */
 function getCardLocation(card_id) {
-    console.log(card_id)
     return '/images/cards/' + cardNames[card_id - 1] + '.svg';
 }
 

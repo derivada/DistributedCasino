@@ -52,7 +52,7 @@ contract Blackjack {
     event PlayerVoted(address indexed player, uint8 totalVoted);
 
     // The game phase changed
-    event GamePhasedChanged(GamePhase phase);
+    event GamePhaseChanged(GamePhase phase);
 
     // A card was dealt to a player
     event CardDealt(address indexed player, uint8 card);
@@ -158,7 +158,7 @@ contract Blackjack {
         }
         phase = GamePhase.Playing;
         // Emit game phase change vent
-        emit GamePhasedChanged(phase);
+        emit GamePhaseChanged(phase);
     }
 
     function dealCard(address _player, bool emitCard) internal {
@@ -352,6 +352,6 @@ contract Blackjack {
         phase = GamePhase.Betting;
         totalBets = 0;
         // Emit game phase change vent
-        emit GamePhasedChanged(phase);
+        emit GamePhaseChanged(phase);
     }
 }

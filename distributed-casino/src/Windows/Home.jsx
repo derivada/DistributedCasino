@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
+
 
 import "../Styles/Home.css";
 import "../Styles/custom.css";
@@ -44,22 +45,15 @@ const games = [
 
 function Home() {
 
-    const [account, setAccount] = useState(null);
-    const [funds, setFunds] = useState(0);
-
     return (
         <div className="container">
-            <Navbar selectedLink="Home" setAccount={setAccount} setFunds={setFunds} />
+            <Navbar selectedLink="Home" />
             <div className="row">
                 <main className="col-9 mt-5 pt-5">
                     <h1 className="fw-bold">Play</h1>
                     <section className="row">{games.map(GameCard)}</section>
                 </main>
-                <FundsControl
-                    account={account}
-                    funds={funds}
-                    setFunds={setFunds}
-                />
+                <FundsControl />
             </div>
         </div>
     );

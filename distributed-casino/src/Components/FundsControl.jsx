@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 
+import { useStore } from 'react-context-hook'
+
 import FundsDisplay from "./FundsDisplay";
 import Leaderboards from "./Leaderboards";
 import mainContractService from "../Contracts/MainContractService";
 
-function FundsControl ({ account, funds, setFunds }) {
+function FundsControl () {
 
+    const [account, setAccount] = useStore("account");
+    const [funds, setFunds] = useStore("funds")
+    
     const [addAmount, setAddAmount] = useState(0);
     const [retrieveAmount, setRetrieveAmount] = useState(0);
     const [error, setError] = useState("");

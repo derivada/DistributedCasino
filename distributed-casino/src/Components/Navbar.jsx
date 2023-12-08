@@ -1,5 +1,7 @@
 import React from "react";
 
+import { useStore } from "react-context-hook";
+
 import mainContractService from "../Contracts/MainContractService";
 
 import { Link } from "react-router-dom";
@@ -11,8 +13,10 @@ const links = [
     { name: 'Transparency', path: '/statement'},
 ];
   
-const Navbar = ({ selectedLink, setAccount, setFunds }) => {
+const Navbar = ({ selectedLink }) => {
 
+    const [account, setAccount] = useStore("account");
+    const [funds, setFunds] = useStore("funds")
 
     function connectAccount() {
         mainContractService.init().then(() => {
@@ -22,7 +26,7 @@ const Navbar = ({ selectedLink, setAccount, setFunds }) => {
     }
 
     return (
-        <nav className="navbar border-bottom border-secondary navbar-expand-md fixed-top">
+        <nav className="navbar border-bottom border-secondary navbar-expand-md">
             <div className="container-fluid">
                 <a className="navbar-brand" href="#">
                     <h1 className="fw-light text-primary d-flex flex-row justify-content-center align-items-center">
@@ -43,7 +47,7 @@ const Navbar = ({ selectedLink, setAccount, setFunds }) => {
                 <div className="collapse navbar-collapse" id="navbarCollapse">
                     <ul className="navbar-nav me-auto mb-2 mb-md-0">
                         {links.map((link) => (
-                            <li className="nav-item fs-4">
+                            <li className="nav-item fs-4" key={link.name}>
                                 <Link
                                     className={`nav-link ${
                                         selectedLink === link.name
@@ -58,7 +62,7 @@ const Navbar = ({ selectedLink, setAccount, setFunds }) => {
                         ))}
                     </ul>
                     <button
-                        className="btn btn-outline-success"
+                        className="btn btn-primary"
                         onClick={connectAccount}
                     >
                         Link your wallet
