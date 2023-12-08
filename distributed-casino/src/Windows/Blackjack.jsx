@@ -12,6 +12,8 @@ import blackContractService from "../Contracts/BlackContractService";
 import { getCardLocation, getCardName } from "../cards";
 
 function Blackjack() {
+    const ADDRESS_0 = "0x0000000000000000000000000000000000000000"; // address(0)
+
     const [bet, setBet] = useState(0);
     const [minimumBet, setMinimumBet] = useState(0);
 
@@ -19,7 +21,15 @@ function Blackjack() {
 
     
 
-    const [players, setPlayers] = useState([]);
+    const [players, setPlayers] = useState([{
+        address: ADDRESS_0,
+        bet: 0,
+        cards: [],
+        stood: false,
+        bust: false,
+        voted: true,
+    }]);
+
     
     console.log('players', players);
 
@@ -27,13 +37,12 @@ function Blackjack() {
 
     const [playersVoted, setPlayersVoted] = useState(0);
 
-    const ADDRESS_0 = "0x0000000000000000000000000000000000000000"; // address(0)
 
     // listener for add player
     const playerJoin = ({address, amount}) => {
         
         setPlayers(prevPlayers => {
-            if (prevPlayers.find(p => p.address == address))
+            if (prevPlayers.filter(p => p.address == address).length > 0)
                 return [...prevPlayers]
             return([...prevPlayers, {
             address: address,
@@ -41,28 +50,33 @@ function Blackjack() {
             cards: [],
             stood: false,
             bust: false,
-            voted: address === ADDRESS_0 ? true : false,
+            voted: false,
         }])})
     };
     
-    const playerVote = ({address, totalVoted}) => {
-        console.log("PLAYERS ON VOTE = ", players)
-        players.find(p => p.address == address).voted = true;
-        setPlayers([ ...players ]);
+    let playerVote = ({address, totalVoted}) => {
+        setPlayers(prevPlayers => {
+            prevPlayers.find((p) => p.address == address).voted = true;
+            return [...prevPlayers];
+        });
         setPlayersVoted(totalVoted);
     }
 
     // Listener for add card
     const cardDeal = ({address, card}) => {
-        players.find(p => p.address == address).cards.push(card)
-        setPlayers([ ...players ])
+        setPlayers(prevPlayers => {
+            prevPlayers.find((p) => p.address == address).cards.push(card);
+            return [...prevPlayers];
+        })
     }
     // Listener for player stand
     const playerStand = ({address, total}) => {
-        let player = players.find(p => p.address == address)
-        player.stood = true;
-        if(total > 21) player.bust = true;
-        setPlayers([ ...players ]);
+        setPlayers(prevPlayers => {
+            let player = prevPlayers.find((p) => p.address == address);
+            player.stood = true;
+            if(total > 21) player.bust = true;
+            return [ ...prevPlayers ];       
+        })
     }
 
     // add all the listeners
@@ -85,15 +99,12 @@ function Blackjack() {
     const [listenersAdded, setListenersAdded] = useState(false)
     
     useEffect(() => {
-        blackContractService.init(account).then(() => {
-            setMinimumBet(blackContractService.minimumBet);
-            if (!listenersAdded) {
-                console.log('listeners added', listenersAdded)
-                addListeners()
-                setListenersAdded(true)
-            }
-        })
+        blackContractService.setupAccount(account)
     }, [account])
+    
+    useEffect(() => {
+        blackContractService.setupContract().then(addListeners)
+    }, [])
 
     const enterBet = () => {
         blackContractService.joinGame(bet)
@@ -188,7 +199,7 @@ function Blackjack() {
                         <div className="col-9">
                             {players.filter((obj) => obj.address == ADDRESS_0).map((player) => {
                                 return (
-                                    <div className="m-2 p-3 rounded">
+                                    <div key={player.address} className="m-2 p-3 rounded">
                                         <h1 className="font-monospace">
                                             Dealer
                                         </h1>
@@ -204,10 +215,11 @@ function Blackjack() {
                             })}
                             {players.filter((obj) => obj.address == account).map((player) => {
                                 return (
-                                    <div className="m-2 p-3 rounded">
-                                        <h1 className="font-monospace">
-                                            You
-                                        </h1>
+                                    <div
+                                        key={player.address}
+                                        className="m-2 p-3 rounded"
+                                    >
+                                        <h1 className="font-monospace">You</h1>
                                         <h3 className="font-primary fw-semibold">
                                             Your bet: {player.bet} ETH
                                         </h3>
@@ -221,9 +233,19 @@ function Blackjack() {
                                                 ></img>
                                             ))}
                                         </div>
-                                        <div className="d-flex justify-content-aaround"> 
-                                            <button className="btn btn-primary fs-2" onClick={hit}>Hit</button>
-                                            <button className="btn btn-secondary fs-2" onClick={stand}>Stand</button>
+                                        <div className="d-flex justify-content-aaround">
+                                            <button
+                                                className="btn btn-primary fs-2"
+                                                onClick={hit}
+                                            >
+                                                Hit
+                                            </button>
+                                            <button
+                                                className="btn btn-secondary fs-2"
+                                                onClick={stand}
+                                            >
+                                                Stand
+                                            </button>
                                         </div>
                                     </div>
                                 );

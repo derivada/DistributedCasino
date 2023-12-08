@@ -1,5 +1,6 @@
 import Web3 from "web3";
 import BlackContractArtifact from "./Blackjack.json" // Replace with your contract's JSON file
+import {getCardName} from "./../cards"
 const callbacks = {
     PlayerJoined: () => {return},
     PlayerVoted: () => {return},
@@ -14,12 +15,12 @@ const blackContractService = {
     account: null,
     minimumBet: 0,
     events: {},
+    listenersDone: false,
+    async setupAccount(acc) {
+        this.account = acc;
+    },
     
-    async init(accountIn) {
-        if (this.account)
-            return
-        console.log("INIT");
-        this.account = accountIn;
+    async setupContract() {
         // Initialize Web3 and set the contract instance
         this.web3 = new Web3(window.ethereum);
         await window.ethereum.enable();
@@ -41,37 +42,44 @@ const blackContractService = {
         } catch (error) {
             console.log(error);
         }
-        const event_types = ['PlayerJoined', 'PlayerVoted', 'GamePhaseChanged', 'CardDealt', 'PlayerStood', 'GameResult']
-        if (!this.events.hasOwnProperty("PlayerJoined")) { // Run this only once
-            event_types.forEach(event_type => {
-                this.events[event_type] = this.blackContract.events[event_type]({})
-            })
-            this.events['PlayerJoined'].on('data', function (event) {
-                let values = event.returnValues;
-                console.log('event', values)
+
+        
+        if(!this.listenersDone){
+            console.log('Adding the listeners...')
+            this.listenersDone = true;
+            this.blackContract.events.PlayerJoined({fromBlock: "latest"}).on('data', e => {
+                // fired when we get a new log that matches the filters for the event type we subscribed to
+                let values = e.returnValues;
+                console.log(values.player + ' joined')
                 callbacks['PlayerJoined']({
                     address: values.player,
                     amount: Web3.utils.fromWei(values.amount, "ether"),
                     totalPlayers: Number(values.totalPlayers),
                 });
-            })
-            this.events['PlayerVoted'].on('data',function (event) {
-                let values = event.returnValues;
+             })
+        
+            this.blackContract.events.PlayerVoted({fromBlock: "latest"}).on('data', e => {
+                let values = e.returnValues;
+                console.log(values.player  + 'voted');
                 callbacks['PlayerVoted']({address: values.player, totalVoted: Number(values.amount)})
             })
-            this.events['GamePhaseChanged'].on('data', function (event) {
+        
+            this.blackContract.events.GamePhaseChanged({fromBlock: "latest"}).on('data', function (event) {
                 let values = event.returnValues;
+                console.log('Game phase changed');
                 callbacks['GamePhaseChanged']({address: values[0]})
             })
-            this.events["CardDealt"].on("data", function (event) {
+            this.blackContract.events.CardDealt({fromBlock: "latest"}).on("data", function (event) {
                 let values = event.returnValues;
+                console.log(values.player  + ' got a ' + getCardName(Number(values.card)));
                 callbacks['CardDealt']({ address: values.player, card: Number(values.card) });
             });
-            this.events['PlayerStood'].on('data',function (event) {
+            this.blackContract.events.PlayerStood({fromBlock: "latest"}).on('data',function (event) {
                 let values = event.returnValues;
+                console.log(values.player + ' stood with ' + Number(values[1]));
                 callbacks['PlayerStood']({address: values[0], total: Number(values[1])})
             });
-            this.events['GameResult'].on('data',function (event) {
+            this.blackContract.events.GameResult({fromBlock: "latest"}).on('data',function (event) {
                 let values = event.returnValues;
                 callbacks['GameResult']({address: values[0], hasWon: values[1], hasBlackjack: values[2]})
             });
@@ -100,7 +108,7 @@ const blackContractService = {
         if (!this.blackContract)
             return null
         try {
-            await this.blackContract.methods.joinGame(betWei).send({ from: this.account })
+            await this.blackContract.methods.joinGame(betWei).send({ from: this.account }).then(receipt => this.redirectEvents(receipt.events))
         } catch(error) {
             if(error.data)
                 console.log(error.data.message)
@@ -111,7 +119,7 @@ const blackContractService = {
         if (!this.blackContract)
             return null
         try {
-            await this.blackContract.methods.voteStart().send({ from: this.account })
+            await this.blackContract.methods.voteStart().send({ from: this.account }).then(receipt => this.redirectEvents(receipt.events))
         } catch(error) {
             if(error.data)
                 console.log(error.data.message)
@@ -138,6 +146,23 @@ const blackContractService = {
             if(error.data)
                 console.log(error.data.message)
         }
+    },
+
+    redirectEvents(events) {
+        /*
+        console.log(events)
+        const event_types = [
+            "PlayerJoined",
+            "PlayerVoted",
+            "GamePhaseChanged",
+            "CardDealt",
+            "PlayerStood",
+            "GameResult",
+        ];
+        event_types.forEach(type => {
+            this.handlers[type](events[type].returnValues)
+        })
+        */
     },
 };
 

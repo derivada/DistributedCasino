@@ -30044,12 +30044,12 @@
     "5777": {
       "events": {},
       "links": {},
-      "address": "0x3D5bA4a16725Da2643CC22885b970E3b1B4aeDCE",
-      "transactionHash": "0xd6de9ff50690d2324301e1a22f2bfff8cb6a48e8f71a4b3396c69b8f072d2aa4"
+      "address": "0x39F2fFB1E994C2bFE5F1F39Be6ab88ceEe46927e",
+      "transactionHash": "0xdd34cdbf433d17064d9192652580641bc11c6ac3ed722aa64e42bec06e70bfc5"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2023-12-08T17:50:21.694Z",
+  "updatedAt": "2023-12-08T22:24:14.414Z",
   "networkType": "ethereum",
   "devdoc": {
     "kind": "dev",
