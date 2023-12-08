@@ -13,5 +13,5 @@ module.exports = async function (deployer) {
     await deployer.link(StructsLibrary, [BlackjackContract]);
 
     // Deploy BlackjackContract with constructor parameters
-    await deployer.deploy(BlackjackContract, 10, 8, mainInstance.address);
+    await deployer.deploy(BlackjackContract, 1e9, 8, mainInstance.address);
 };

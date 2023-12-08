@@ -45,17 +45,16 @@ contract Main {
         gameContracts[game_contract] = false;
     }
 
-    // Adds the user to the list of userss
-    function registerUser() external {
-        userList.push(msg.sender);
-        userFunds[msg.sender].exists = true;
+    function registerUser(address _user) internal {
+        userList.push(_user);
+        userFunds[_user].exists = true;
     }
-    
     // Adds funds to the user account
     function addFunds() external payable {
+        if(!userFunds[msg.sender].exists)
+            registerUser(msg.sender);
         userFunds[msg.sender].funds = msg.value + userFunds[msg.sender].funds;
     }
-
 
     // Let's a user retrieve his funds from the casino
     function retrieveFunds(uint256 amount) external {

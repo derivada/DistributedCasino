@@ -1,8 +1,12 @@
+/**
+ * This script moves the deployed contracts to the frontend ABI folder
+ */
+
 const fs = require('fs-extra');
 const path = require('path');
 
-const sourceDirectory =  path.join('..', 'build', 'contracts');
-const destinationDirectory = path.join('..', 'distributed-casino', 'src', 'Contracts');
+const sourceDirectory =  path.join('build', 'contracts');
+const destinationDirectory = path.join('distributed-casino', 'src', 'Contracts');
 // Ensure the destination directory exists
 fs.ensureDirSync(destinationDirectory);
 

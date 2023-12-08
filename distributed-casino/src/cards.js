@@ -7,6 +7,10 @@ function getCardLocation(card_id) {
     return '/images/cards/' + cardNames[card_id - 1] + '.svg';
 }
 
+function getCardName(card_id) {
+    return cardNames[card_id - 1].replace(/_/g, ' ').replace(/2$/, "");;
+}
+
 const cardNames = [
     'ace_of_hearts',
     '2_of_hearts',
@@ -62,4 +66,4 @@ const cardNames = [
     'king_of_spades2',
 ]
 
-export default getCardLocation;
+module.exports =  {getCardLocation, getCardName} ;
