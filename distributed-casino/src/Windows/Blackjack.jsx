@@ -24,33 +24,34 @@ function Blackjack() {
     const [vote, setVote] = useState(false); // If the user has voted for the start or not
 
     const [players, setPlayers] = useState([{
-        address: ADDRESS_0,
+        addr: ADDRESS_0,
         bet: 0,
-        cards: [],
-        stood: false,
-        bust: false,
-        voted: true,
-    }]); // The structure of the users, initialized for containing the dealer 
+        hasVoted: true,
+        isDealer: true,
+        playerCards: [],
+        playerTotal: 0,
+        hasStood: false,
+    }]); // The structure of the users, reflects the blockchain status and its initialized with the dealer
     const [playersVoted, setPlayersVoted] = useState(0); // The amount of players that have voted, for ease of counting them
 
     /* Event listeners to contract events */
     const playerJoin = ({address, amount}) => {
         setPlayers(prevPlayers => {
-            if (prevPlayers.filter(p => p.address == address).length > 0)
+            if (prevPlayers.filter(p => p.addr == address).length > 0)
                 return [...prevPlayers]
             return([...prevPlayers, {
-            address: address,
+            addr: address,
             bet: amount,
-            cards: [],
-            stood: false,
+            playerCards: [],
+            hasStood: false,
             bust: false,
-            voted: false,
+            hasVoted: false,
         }])})
     };
     
     let playerVote = ({address, totalVoted}) => {
         setPlayers(prevPlayers => {
-            prevPlayers.find((p) => p.address == address).voted = true;
+            prevPlayers.find((p) => p.addr == address).hasVoted = true;
             return [...prevPlayers];
         });
         setPlayersVoted(totalVoted);
@@ -58,21 +59,21 @@ function Blackjack() {
 
     const cardDeal = ({address, card}) => {
         setPlayers(prevPlayers => {
-            prevPlayers.find((p) => p.address == address).cards.push(card);
+            prevPlayers.find((p) => p.addr == address).playerCards.push(card);
             return [...prevPlayers];
         })
     }
 
     const playerStand = ({address, total}) => {
         setPlayers(prevPlayers => {
-            let player = prevPlayers.find((p) => p.address == address);
-            player.stood = true;
+            let player = prevPlayers.find((p) => p.addr == address);
+            player.hasStood = true;
             if(total > 21) player.bust = true;
             return [ ...prevPlayers ];       
         })
     }
 
-    // add all the listeners
+    // Add all the listeners
     const addListeners = () => {
         blackContractService.addPlayerJoinedListener(playerJoin);
         blackContractService.addPlayerVotedListener(playerVote);
@@ -80,28 +81,41 @@ function Blackjack() {
         blackContractService.addPlayerStoodListener(playerStand);
     }
 
+    const getGameGlobals = () => {
+        blackContractService.getGamePhase().then(setGamePhase); // Get the current phase of the game
+        blackContractService.getMaxPlayers().then(setMaxPlayers); // Get the maximum amount of players of the game
+        blackContractService.getMinimumBet().then(setMinimumBet); // Get the minimum bet of the game
+    }
+
     // To be done in account change
     useEffect(() => {
         // TODO maybe should reload the page as all data is based on account
-        blackContractService.setupAccount(account)
+        blackContractService.setupAccount(account);
     }, [account])
     
     // To be done in page reload
     useEffect(() => {
         blackContractService.setupContract().then( () => {
             addListeners(); // Hook up event listeners
-            blackContractService.getGamePhase().then(setGamePhase); // Get the current phase of the game
-            blackContractService.getMaxPlayers().then(setMaxPlayers); // Get the maximum amount of players of the game
-            blackContractService.getMinimumBet().then(setMinimumBet); // Get the minimum bet of the game
+            getGameGlobals(); // Get the basic information of the room
         }); 
     }, [])
 
-    // Game actions, in Blackjack you can either hit (take a card) or stand (finish your turn)
-    const hit = () => {
-        blackContractService.hit()
-    }
-    const stand = () => {
-        blackContractService.stand()
+    // Join the room, get the players already in the room and their voting status
+    const joinRoom = () => {
+        blackContractService.getPlayers().then((players) => {
+            players.forEach(player => {
+                console.log("Player Information:");
+                console.log("Bet:", player.bet);
+                console.log("Has Voted:", player.hasVoted);
+                console.log("Is Dealer:", player.isDealer);
+                console.log("Player Cards:", player.playerCards);
+                console.log("Player Total:", player.playerTotal);
+                console.log("Has Stood:", player.hasStood);
+                console.log("-------------");
+              });
+            setPlayers([... players])
+        })
     }
 
     // Room actions, able user to enter a bet, confirming his participation and later vote for the start of the game when he is ready 
@@ -115,6 +129,16 @@ function Blackjack() {
             setVote(true);
         })
     }
+
+    // Game actions, in Blackjack you can either hit (take a card) or stand (finish your turn)
+    const hit = () => {
+        blackContractService.hit()
+    }
+    const stand = () => {
+        blackContractService.stand()
+    }
+
+
 
     // Helper function for retrieving a styled string with the status of a player based on his obj. attributes
     const getPlayerStatus = (player) => {
@@ -157,8 +181,8 @@ function Blackjack() {
                             {
                                 gamePhase === 'Betting' ? (
                                     <div className="border border-primary rounded p-5">
-                                        <h3>The game hasn't started yet! Click the button to start playing!</h3>
-                                        <button className="btn btn-outline-primary"></button>
+                                        <h3>The game hasn't started yet! Click the button to start betting!</h3>
+                                        <button className="btn btn-outline-primary" onClick={joinRoom}>Start betting</button>
                                     </div>
                                 ) : (
                                     <div className="border border-primary rounded p-5">
@@ -227,13 +251,13 @@ function Blackjack() {
                         style={{ backgroundColor: "#458248" }}
                     >
                         <div className="col-9">
-                            {players.filter((obj) => obj.address == ADDRESS_0).map((player) => {
+                            {players.filter((obj) => obj.addr == ADDRESS_0).map((player) => {
                                 return (
-                                    <div key={player.address} className="m-2 p-3 rounded">
+                                    <div key={player.addr} className="m-2 p-3 rounded">
                                         <h1 className="font-monospace">
                                             Dealer
                                         </h1>
-                                        {player.cards.map((card) => (
+                                        {player.playerCards.map((card) => (
                                             <img
                                                 src={getCardLocation(card)}
                                                 className="mx-1 rounded"
@@ -243,10 +267,10 @@ function Blackjack() {
                                     </div>
                                 );
                             })}
-                            {players.filter((obj) => obj.address == account).map((player) => {
+                            {players.filter((obj) => obj.addr == account).map((player) => {
                                 return (
                                     <div
-                                        key={player.address}
+                                        key={player.addr}
                                         className="m-2 p-3 rounded"
                                     >
                                         <h1 className="font-monospace">You</h1>
@@ -255,7 +279,7 @@ function Blackjack() {
                                         </h3>
                                         {getPlayerStatus(player)}
                                         <div>
-                                            {player.cards.map((card) => (
+                                            {player.playerCards.map((card) => (
                                                 <img
                                                     src={getCardLocation(card)}
                                                     className="mx-1 rounded"
@@ -282,16 +306,16 @@ function Blackjack() {
                             })}
                         </div>
                         <aside className="col-3">
-                            {players.filter((obj) => obj.address != account && obj.address != ADDRESS_0).map((player) => (
+                            {players.filter((obj) => obj.addr != account && obj.addr != ADDRESS_0).map((player) => (
                                     <div className="bg-dark m-2 p-3 rounded">
                                         <h6 className="font-monospace fw-semibold">
-                                            {player.address.substring(0, 6) + "..."}
+                                            {player.addr.substring(0, 6) + "..."}
                                         </h6>
                                         <p className="font-primary fw-semibold">
                                             {player.bet} ETH
                                         </p>
                                         {getPlayerStatus(player)}
-                                        {player.cards.map((card) => (
+                                        {player.playerCards.map((card) => (
                                             <img
                                                 src={getCardLocation(card)}
                                                 className="mx-1 rounded"

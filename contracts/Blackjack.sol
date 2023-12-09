@@ -27,6 +27,7 @@ contract Blackjack {
     // Player info. structure
     struct Player {
         // Basic player data
+        address addr;
         uint256 bet;
         bool hasVoted;
         bool isDealer;
@@ -41,7 +42,7 @@ contract Blackjack {
     mapping(address => Player) players;
     address[] playerAddresses;
     Main mainContract;
-    
+
     // Events for clients to keep track of the game
 
     // A player joined this game
@@ -96,6 +97,16 @@ contract Blackjack {
         playerAddresses.push(address(0));
         players[address(0)].isDealer = true;
         players[address(0)].hasVoted = true;
+    }
+
+        
+    // Get player information, only available at betting phase to not reveal dealer cards
+    function getPlayers() external view inBettingPhase returns (Player[] memory) {
+        Player[] memory allPlayers = new Player[](playerAddresses.length);
+        for(uint256 i = 0; i < playerAddresses.length; i++ ) {
+            allPlayers[i] = players[playerAddresses[i]];
+        }
+        return allPlayers;
     }
 
     function joinGame(uint256 bet) external inBettingPhase {

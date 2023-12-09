@@ -109,6 +109,9 @@ const blackContractService = {
     },
 
     // Getters for public contract variables
+    async getPlayers() {
+        return await this.blackContract.methods.getPlayers().call();
+    },
     async getContractOwner() {
         return await this.blackContract.methods.owner().call();
     },
