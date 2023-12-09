@@ -43,25 +43,8 @@ contract Blackjack {
     address[] playerAddresses;
     Main mainContract;
 
-    // Events for clients to keep track of the game
-
-    // A player joined this game
-    event PlayerJoined(address indexed player, uint256 amount, uint8 totalPlayers);
-    
-    // A player joined the game
-    event PlayerVoted(address indexed player, uint8 totalVoted);
-
-    // The game phase changed
-    event GamePhaseChanged(GamePhase phase);
-
-    // A card was dealt to a player
-    event CardDealt(address indexed player, uint8 card);
-
-    // A player has stood
-    event PlayerStood(address indexed player, uint8 total);
-
-    // What was the result of the player
-    event GameResult(address indexed player, bool hasWon, bool hasBlackjack);
+    // Fired on state changes in the game, sends the information
+    event GameStateChanged(Player[] players, GamePhase phase);
 
     // Modifiers for access to functions
     modifier onlyOwner() {
@@ -84,6 +67,10 @@ contract Blackjack {
         _;
     }
 
+    modifier emitStateChange() {
+        _;
+        emit GameStateChanged(getPlayersInternal(), phase);
+    }
 
     constructor(uint256 _minimumBet, uint8 _maxPlayers, address _main_contract_addr) {
         owner = msg.sender;
@@ -101,7 +88,11 @@ contract Blackjack {
 
         
     // Get player information, only available at betting phase to not reveal dealer cards
-    function getPlayers() external view inBettingPhase returns (Player[] memory) {
+    function getPlayers() external view returns (Player[] memory) {
+        return getPlayersInternal();
+    } 
+
+    function getPlayersInternal() internal view returns (Player[] memory) {
         Player[] memory allPlayers = new Player[](playerAddresses.length);
         for(uint256 i = 0; i < playerAddresses.length; i++ ) {
             allPlayers[i] = players[playerAddresses[i]];
@@ -109,7 +100,7 @@ contract Blackjack {
         return allPlayers;
     }
 
-    function joinGame(uint256 bet) external inBettingPhase {
+    function joinGame(uint256 bet) external inBettingPhase emitStateChange {
         require(playerAddresses.length - 1 <= maxPlayers, "The maximum number of players was reached");
         
         require(bet >= minimumBet, "You need to bet more than the minimum bet");
@@ -126,12 +117,9 @@ contract Blackjack {
         players[msg.sender].bet = bet;
         playerAddresses.push(msg.sender);
         totalBets += bet;
-
-        // Emit bet placed event
-        emit PlayerJoined(msg.sender, bet, uint8(playerAddresses.length - 1));
     }
 
-    function voteStart() external onlyPlayers inBettingPhase {
+    function voteStart() external onlyPlayers inBettingPhase emitStateChange {
         // Check if player is registered for the game and has not voted
         require(!players[msg.sender].hasVoted, "User has already voted for the start of the game");
         players[msg.sender].hasVoted = true;
@@ -143,11 +131,6 @@ contract Blackjack {
             if(players[playerAddresses[i]].hasVoted)
                 votedCount++;
         }
-
-
-        // Emit player voted event
-        emit PlayerVoted(msg.sender, votedCount);
-        
         // Start the game if all players have voted
         if(votedCount == playerAddresses.length - 1)
             startGame();
@@ -160,64 +143,21 @@ contract Blackjack {
         // Deal two cards to each player and the dealer (the contract is the dealer)
         for (uint256 i = 0; i < 2; i++) {
             for (uint8 j = 0; j < playerAddresses.length; j++) {
-                if(i == 1 && playerAddresses[j] == address(0)) // dont emit second dealer card
-                    dealCard(playerAddresses[j], false);
+                if(i == 1 && playerAddresses[j] == address(0)) // dont create second dealer card
+                    continue;
                 else
-                    dealCard(playerAddresses[j], true);
+                    dealCard(playerAddresses[j]);
             }
         }
         phase = GamePhase.Playing;
-        // Emit game phase change vent
-        emit GamePhaseChanged(phase);
     }
 
-    function dealCard(address _player, bool emitCard) internal {
+    function dealCard(address _player) internal {
         // Player receives a card
         uint8 card = uint8(uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, _player, players[_player].playerCards.length))) % 52) + 1;
         players[_player].playerCards.push(card);
-        
-        if (emitCard)
-            emit CardDealt(_player, card);
-
         calculatePlayerTotal(_player);
     }
-
-    function getTotalUsers() external view returns (uint256) {
-        return playerAddresses.length - 1;
-    }
-
-    function getTotalVoted() external view returns (uint8) {
-        uint8 votedCount;
-        for (uint8 i = 1; i < playerAddresses.length; i++) {
-            if(players[playerAddresses[i]].hasVoted)
-                votedCount++;
-        }
-        return votedCount;
-    }
-
-    function getCards() external view onlyPlayers inPlayingPhase returns (uint8[] memory) {
-        require(players[msg.sender].playerCards.length > 0, "Player cards not initialized");
-
-        // Gets the current player cards
-        return players[msg.sender].playerCards;
-    }
-
-    function getPlayerTotal() external view onlyPlayers inPlayingPhase returns (uint8) {
-        return players[msg.sender].playerTotal;
-    }
-    
-    function hasStood() external view onlyPlayers inPlayingPhase returns (bool) {
-        return players[msg.sender].hasStood;
-    }
-
-    function getDealerCard() external view onlyPlayers inPlayingPhase returns (uint8) {
-        require(players[address(0)].playerCards.length > 0, "Dealer cards not initialized");
-
-        // Gets the initial dealer card
-        return players[address(0)].playerCards[0];
-    }
-
-
 
     function calculatePlayerTotal(address _player) internal {
         uint8 total = 0;
@@ -251,32 +191,29 @@ contract Blackjack {
         if (total == 21 && _player != address(0)) {
             // Player got 21, stood automatically
             players[_player].hasStood = true;
-            emit PlayerStood(_player, players[_player].playerTotal);
             endPlayerTurn();
         } else if (total > 21 && _player != address(0)) {
             // Player busted
             players[_player].hasStood = true;
-            emit PlayerStood(_player, players[_player].playerTotal);
             endPlayerTurn();
         }
     }
 
     // User turn actions
-    function hit() external onlyPlayers inPlayingPhase {
+    function hit() external onlyPlayers inPlayingPhase emitStateChange {
         // Ensure the player has not stood or busted
         require(!players[msg.sender].hasStood, "You have already stood or busted.");
 
         // Deal a new card to the player
-        dealCard(msg.sender, true);
+        dealCard(msg.sender);
     }
 
-    function stand() external onlyPlayers inPlayingPhase {
+    function stand() external onlyPlayers inPlayingPhase emitStateChange {
         // Ensure the player has not stood or busted
         require(!players[msg.sender].hasStood, "You have already stood or busted.");
 
         // Stand and end turn
         players[msg.sender].hasStood = true;
-        emit PlayerStood(msg.sender, players[msg.sender].playerTotal);
         endPlayerTurn();
     }
     
@@ -293,10 +230,10 @@ contract Blackjack {
         if (allPlayersDone) {
             // Dealer's turn
             // Reveal second dealer card
-            emit CardDealt(address(0), players[address(0)].playerCards[1]);
+            emit GameStateChanged(getPlayersInternal(), phase);
             while (players[address(0)].playerTotal < 17) {
                 // Deal with emiting reveal of all other cards
-                dealCard(address(0), true);
+                dealCard(address(0));
             }
 
             // Determine the winner
@@ -334,7 +271,7 @@ contract Blackjack {
                         amount:  -int256(players[playerAddr].bet)
                     });
                 }
-                emit GameResult(playerAddresses[i], playerWon, playerBlackjack);
+            emit GameStateChanged(getPlayersInternal(), phase);
             }
             // Pay out users
             mainContract.modifyFunds(winnings, false);
@@ -361,7 +298,5 @@ contract Blackjack {
         // Set the phase to betting
         phase = GamePhase.Betting;
         totalBets = 0;
-        // Emit game phase change vent
-        emit GamePhaseChanged(phase);
     }
 }

@@ -8,6 +8,7 @@ const callbacks = {
     CardDealt: () => {return},
     PlayerStood: () => {return},
     GameResult: () => {return},
+    GameStateChanged: () => {return},
 }
 const blackContractService = {
     web3: null,
@@ -23,7 +24,7 @@ const blackContractService = {
     
     // Contract setup
     async setupContract() {
-        // Initialize Web3 and set the contract instance
+        // Initialize Web3 and set contract instance
         this.web3 = new Web3(window.ethereum);
         await window.ethereum.enable();
         const networkId = await this.web3.eth.net.getId();
@@ -47,9 +48,19 @@ const blackContractService = {
 
         
         if(!this.listenersDone){
-            console.log('Adding the listeners...')
+            console.log("Adding the listeners...");
             this.listenersDone = true;
-            this.blackContract.events.PlayerJoined({fromBlock: "latest"}).on('data', e => {
+            
+            this.blackContract.events.GameStateChanged({ fromBlock: "latest" }).on("data", (e) => {
+                    // fired when we get a new log that matches the filters for the event type we subscribed to
+                    let values = e.returnValues;
+                    callbacks["GameStateChanged"]({
+                        players: values.players,
+                        phase: values.phase,
+                    });
+                });
+
+            /*this.blackContract.events.PlayerJoined({fromBlock: "latest"}).on('data', e => {
                 // fired when we get a new log that matches the filters for the event type we subscribed to
                 let values = e.returnValues;
                 console.log(values.player + ' joined')
@@ -58,9 +69,9 @@ const blackContractService = {
                     amount: Web3.utils.fromWei(values.amount, "ether"),
                     totalPlayers: Number(values.totalPlayers),
                 });
-             })
-        
-            this.blackContract.events.PlayerVoted({fromBlock: "latest"}).on('data', e => {
+             })*/
+
+            /*this.blackContract.events.PlayerVoted({fromBlock: "latest"}).on('data', e => {
                 let values = e.returnValues;
                 console.log(values.player  + 'voted');
                 callbacks['PlayerVoted']({address: values.player, totalVoted: Number(values.amount)})
@@ -69,7 +80,7 @@ const blackContractService = {
             this.blackContract.events.GamePhaseChanged({fromBlock: "latest"}).on('data', function (event) {
                 let values = event.returnValues;
                 console.log('Game phase changed');
-                callbacks['GamePhaseChanged']({address: values[0]})
+                callbacks['GamePhaseChanged']({phase: Number(values.phase) === 0 ? 'Betting' : 'Playing'});
             })
             this.blackContract.events.CardDealt({fromBlock: "latest"}).on("data", function (event) {
                 let values = event.returnValues;
@@ -84,11 +95,16 @@ const blackContractService = {
             this.blackContract.events.GameResult({fromBlock: "latest"}).on('data',function (event) {
                 let values = event.returnValues;
                 callbacks['GameResult']({address: values[0], hasWon: values[1], hasBlackjack: values[2]})
-            });
+            });*/
         }
     },
 
     // Listener registerers
+
+    async addGameStateListener(callback) {
+        callbacks['GameStateListener'] = callback;
+    },
+    /*
     async addPlayerJoinedListener(callback) {
         callbacks['PlayerJoined'] = callback;
     },    
@@ -107,8 +123,9 @@ const blackContractService = {
     async addGameResultListener(callback) {
         callbacks['GameResult'] = callback;
     },
-
+    */
     // Getters for public contract variables
+
     async getPlayers() {
         return await this.blackContract.methods.getPlayers().call();
     },
@@ -123,7 +140,8 @@ const blackContractService = {
         return Web3.utils.fromWei(minBet, 'ether'); 
     },
     async getGamePhase() {
-        return await this.blackContract.methods.phase().call();
+        let phaseN = await this.blackContract.methods.phase().call();
+        return Number(phaseN) === 0 ? 'Betting' : 'Playing';
     },
     async getTotalBets() {
         let total = await this.blackContract.methods.totalBets().call();

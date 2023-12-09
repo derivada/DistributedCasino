@@ -32,10 +32,10 @@ function Blackjack() {
         playerTotal: 0,
         hasStood: false,
     }]); // The structure of the users, reflects the blockchain status and its initialized with the dealer
-    const [playersVoted, setPlayersVoted] = useState(0); // The amount of players that have voted, for ease of counting them
 
     /* Event listeners to contract events */
-    const playerJoin = ({address, amount}) => {
+    
+    /*const playerJoin = ({address, amount}) => {
         setPlayers(prevPlayers => {
             if (prevPlayers.filter(p => p.addr == address).length > 0)
                 return [...prevPlayers]
@@ -72,16 +72,23 @@ function Blackjack() {
             return [ ...prevPlayers ];       
         })
     }
+    */
+    const gameStateChanged = (({players, phase}) => {
+        console.log('estado cambiado')
+        setPlayers(players);
+        setGamePhase(phase)
+    })
 
-    // Add all the listeners
-    const addListeners = () => {
-        blackContractService.addPlayerJoinedListener(playerJoin);
-        blackContractService.addPlayerVotedListener(playerVote);
-        blackContractService.addCardDealtListener(cardDeal);
-        blackContractService.addPlayerStoodListener(playerStand);
+    // Register listeners for contract events
+    const registerListeners = () => {
+        blackContractService.addGameStateListener(gameStateChanged);
+        //blackContractService.addPlayerJoinedListener(playerJoin);
+        //blackContractService.addPlayerVotedListener(playerVote);
+        //blackContractService.addCardDealtListener(cardDeal);
+        //blackContractService.addPlayerStoodListener(playerStand);
     }
 
-    const getGameGlobals = () => {
+    const getRoomVariables = () => {
         blackContractService.getGamePhase().then(setGamePhase); // Get the current phase of the game
         blackContractService.getMaxPlayers().then(setMaxPlayers); // Get the maximum amount of players of the game
         blackContractService.getMinimumBet().then(setMinimumBet); // Get the minimum bet of the game
@@ -96,8 +103,8 @@ function Blackjack() {
     // To be done in page reload
     useEffect(() => {
         blackContractService.setupContract().then( () => {
-            addListeners(); // Hook up event listeners
-            getGameGlobals(); // Get the basic information of the room
+            registerListeners(); // Hook up event listeners
+            getRoomVariables(); // Get the basic information of the room
         }); 
     }, [])
 
@@ -114,14 +121,14 @@ function Blackjack() {
                 console.log("Has Stood:", player.hasStood);
                 console.log("-------------");
               });
-            setPlayers([... players])
+            setPlayers([... players]);
+            setWantsToJoin(true);
         })
     }
 
     // Room actions, able user to enter a bet, confirming his participation and later vote for the start of the game when he is ready 
     const enterBet = () => {
         blackContractService.joinGame(bet)
-        console.log('entering bet with ' + bet)
     }
 
     const voteStart = () => {
@@ -137,8 +144,6 @@ function Blackjack() {
     const stand = () => {
         blackContractService.stand()
     }
-
-
 
     // Helper function for retrieving a styled string with the status of a player based on his obj. attributes
     const getPlayerStatus = (player) => {
@@ -167,7 +172,7 @@ function Blackjack() {
                             <h6>Minimum bet:
                                 {
                                     minimumBet && (
-                                        <span class=" ms-2 text-primary">{minimumBet} ETH</span>
+                                        <span className=" ms-2 text-primary">{minimumBet} ETH</span>
                                     )
                                 }
                             </h6>
@@ -181,8 +186,8 @@ function Blackjack() {
                             {
                                 gamePhase === 'Betting' ? (
                                     <div className="border border-primary rounded p-5">
-                                        <h3>The game hasn't started yet! Click the button to start betting!</h3>
-                                        <button className="btn btn-outline-primary" onClick={joinRoom}>Start betting</button>
+                                        <h3 className='mb-3'>The game hasn't started yet!</h3>
+                                        <button className="btn btn-outline-primary col-12" onClick={joinRoom}>Start betting</button>
                                     </div>
                                 ) : (
                                     <div className="border border-primary rounded p-5">
@@ -232,9 +237,9 @@ function Blackjack() {
                         <div className="row">
                             <div className="fs-4 col">
                                 Players ready:
-                                <span className="text-warning ms-3 me-1">{playersVoted}</span> 
+                                <span className="text-warning ms-3 me-1">{players.filter(player => player.hasVoted).length - 1}</span> 
                                 /
-                                <span className="text-primary px-1">{players.length}</span>
+                                <span className="text-primary px-1">{players.length - 1}</span>
                             </div>
                             <button
                                 onClick={voteStart}
