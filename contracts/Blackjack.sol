@@ -13,12 +13,13 @@ interface Main {
 }
 
 contract Blackjack {
+    // Public variables
     address public owner;
     address public mainContractAddr;
-    Main public mainContract;
     uint256 public minimumBet;
     uint8 public maxPlayers;
     uint256 public totalBets; // The sum of bets across all players
+    GamePhase public phase;
 
     // Possible game phases
     enum GamePhase { Betting, Playing }
@@ -36,12 +37,10 @@ contract Blackjack {
         bool hasStood;
     }
 
-    // Mapping with players and list of them
+    // Private variables
     mapping(address => Player) players;
     address[] playerAddresses;
-
-    // Phase of the game
-    GamePhase public phase;
+    Main mainContract;
     
     // Events for clients to keep track of the game
 

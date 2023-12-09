@@ -31,13 +31,9 @@ function FundsControl () {
 
 
     return (
-        <aside className="col-3 mt-5 pt-5">
-            <section className="m-2 py-2 rounded">
-                <h2 className="fw-semibold">Daily Leaderboards</h2>
-                <Leaderboards></Leaderboards>
-            </section>
+        <aside className="col-3">
             <FundsDisplay account={account} funds={funds} />
-            <section className="mt-5 py-2 rounded">
+            <section className="py-2 rounded">
                 <h2 className="fw-semibold">Manage your wallet</h2>
                 {error && (
                     <div className="alert alert-danger alert-dismissible fade show">

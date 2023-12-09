@@ -14,7 +14,7 @@ function FundsDisplay() {
     const [funds, setFunds] = useStore("funds")
 
     return (
-        <section className="mt-5 rounded px-2">
+        <section className="rounded px-2">
             <h2 className="fw-semibold">Current Funds</h2>
             <h5>Account: <p className="font-monospace text-primary mb-3">{account ?? 'Not linked'}</p></h5>
             <h3>Funds: <p className="text-primary">{funds+" ETH"}</p></h3>

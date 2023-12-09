@@ -16,10 +16,12 @@ const blackContractService = {
     minimumBet: 0,
     events: {},
     listenersDone: false,
+    // Account setup
     async setupAccount(acc) {
         this.account = acc;
     },
     
+    // Contract setup
     async setupContract() {
         // Initialize Web3 and set the contract instance
         this.web3 = new Web3(window.ethereum);
@@ -85,6 +87,8 @@ const blackContractService = {
             });
         }
     },
+
+    // Listener registerers
     async addPlayerJoinedListener(callback) {
         callbacks['PlayerJoined'] = callback;
     },    
@@ -103,12 +107,37 @@ const blackContractService = {
     async addGameResultListener(callback) {
         callbacks['GameResult'] = callback;
     },
+
+    // Getters for public contract variables
+    async getContractOwner() {
+        return await this.blackContract.methods.owner().call();
+    },
+    async getMainContract() {
+        return await this.blackContract.methods.mainContractAddr().call();
+    },
+    async getMinimumBet() {
+        let minBet = await this.blackContract.methods.minimumBet().call();
+        return Web3.utils.fromWei(minBet, 'ether'); 
+    },
+    async getGamePhase() {
+        return await this.blackContract.methods.phase().call();
+    },
+    async getTotalBets() {
+        let total = await this.blackContract.methods.totalBets().call();
+        return Web3.utils.fromWei(total, 'ether');
+    },
+    async getMaxPlayers() {
+        let players =  await this.blackContract.methods.maxPlayers().call();
+        return Number(players);
+    },
+
+    // Room actions
     async joinGame(bet) {
         let betWei = Web3.utils.toWei(bet, "ether");
         if (!this.blackContract)
             return null
         try {
-            await this.blackContract.methods.joinGame(betWei).send({ from: this.account }).then(receipt => this.redirectEvents(receipt.events))
+            await this.blackContract.methods.joinGame(betWei).send({ from: this.account })
         } catch(error) {
             if(error.data)
                 console.log(error.data.message)
@@ -119,13 +148,14 @@ const blackContractService = {
         if (!this.blackContract)
             return null
         try {
-            await this.blackContract.methods.voteStart().send({ from: this.account }).then(receipt => this.redirectEvents(receipt.events))
+            await this.blackContract.methods.voteStart().send({ from: this.account })
         } catch(error) {
             if(error.data)
                 console.log(error.data.message)
         }
     },
 
+    // Game actions
     async stand() {
         if (!this.blackContract)
             return null;
@@ -146,23 +176,6 @@ const blackContractService = {
             if(error.data)
                 console.log(error.data.message)
         }
-    },
-
-    redirectEvents(events) {
-        /*
-        console.log(events)
-        const event_types = [
-            "PlayerJoined",
-            "PlayerVoted",
-            "GamePhaseChanged",
-            "CardDealt",
-            "PlayerStood",
-            "GameResult",
-        ];
-        event_types.forEach(type => {
-            this.handlers[type](events[type].returnValues)
-        })
-        */
     },
 };
 
