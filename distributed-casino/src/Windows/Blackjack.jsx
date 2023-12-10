@@ -18,20 +18,12 @@ function Blackjack() {
     const [account, setAccount] = useStore('account'); // The account of the players, stored as global state
     const [gamePhase, setGamePhase] = useState('Betting') // The state of the game
     const [maxPlayers, setMaxPlayers] = useState(0); // The maximum amount of players in this room
-    const [wantsToJoin, setWantsToJoin] = useStore('false') // If the user wants to join the game or not
+    const [wantsToJoin, setWantsToJoin] = useState(false) // If the user wants to join the game or not
     const [bet, setBet] = useState(0); // The bet of the player
     const [minimumBet, setMinimumBet] = useState(0); // The minimum bet in the room
     const [vote, setVote] = useState(false); // If the user has voted for the start or not
-
-    const [players, setPlayers] = useState([{
-        addr: ADDRESS_0,
-        bet: 0,
-        hasVoted: true,
-        isDealer: true,
-        playerCards: [],
-        playerTotal: 0,
-        hasStood: false,
-    }]); // The structure of the users, reflects the blockchain status and its initialized with the dealer
+    const [gameEnded, setGameEnded] = useState(false) // If the game has ended
+    const [players, setPlayers] = useState([]); // The structure of the users, reflects the blockchain status and its initialized with the dealer
 
     /* Event listeners to contract events */
     
@@ -74,11 +66,17 @@ function Blackjack() {
     }
     */
     const gameStateChanged = (({players, phase}) => {
-        console.log('estado cambiado')
+        if(phase === 'Ended' && vote) {
+            // the game ended!!!!
+            console.log('Game ended (with rizz)')
+            setGameEnded(true);
+            // TODO set the user balance to the correct one in sidebar
+            return;
+        }
+        console.log('Game state changed')
         setPlayers(players);
         setGamePhase(phase)
     })
-
     // Register listeners for contract events
     const registerListeners = () => {
         blackContractService.addGameStateListener(gameStateChanged);
@@ -136,7 +134,14 @@ function Blackjack() {
             setVote(true);
         })
     }
-
+    const resetUI = () => {
+        // Destroys all room variables and sends user to the join a game screen
+        setWantsToJoin(false);
+        setBet(0);
+        setVote(false);
+        setGameEnded(false);
+        setPlayers([]);
+    }
     // Game actions, in Blackjack you can either hit (take a card) or stand (finish your turn)
     const hit = () => {
         blackContractService.hit()
@@ -184,7 +189,7 @@ function Blackjack() {
                         { /* Pre-game screen, asks if you want to join to the game if it has not already been started */}
                         <div className="col-12 d-flex align-items-center justify-content-center" >
                             {
-                                gamePhase === 'Betting' ? (
+                                gamePhase === 'Ended' || gamePhase === 'Betting' ? (
                                     <div className="border border-primary rounded p-5">
                                         <h3 className='mb-3'>The game hasn't started yet!</h3>
                                         <button className="btn btn-outline-primary col-12" onClick={joinRoom}>Start betting</button>
@@ -272,6 +277,29 @@ function Blackjack() {
                                     </div>
                                 );
                             })}
+                            { gameEnded && (
+                                <div className="d-flex flex-justify-center">
+                                    <div className="mb-2">The game has ended!</div>
+                                    <div className="mb-2">
+                                    {
+                                        (() => {
+                                            let player = players.find(obj => obj.addr === account);
+                                            let result = player.betResult ?? 0;
+                                            return (
+                                                <div>
+                                                    {result > 0 ? (
+                                                        <div>You won <span className="ms-1 text-primary fst-light">{result} ETH</span></div>
+                                                    ) : (
+                                                        <div>You lost <span className="ms-1 text-danger fst-light">{-result} ETH</span></div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()
+                                    }
+                                    </div>
+                                <button className="btn-primary fs-4" onClick={resetUI}>Play again!</button>
+                                </div>
+                            )}
                             {players.filter((obj) => obj.addr == account).map((player) => {
                                 return (
                                     <div

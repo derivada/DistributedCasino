@@ -13,17 +13,17 @@ interface Main {
 }
 
 contract Blackjack {
+    // Possible game phases
+    enum GamePhase { Ended, Betting, Playing }
+
     // Public variables
     address public owner;
     address public mainContractAddr;
     uint256 public minimumBet;
     uint8 public maxPlayers;
     uint256 public totalBets; // The sum of bets across all players
-    GamePhase public phase;
+    GamePhase public phase = GamePhase.Ended;
 
-    // Possible game phases
-    enum GamePhase { Betting, Playing }
-    
     // Player info. structure
     struct Player {
         // Basic player data
@@ -36,6 +36,7 @@ contract Blackjack {
         uint8[] playerCards; 
         uint8 playerTotal;
         bool hasStood;
+        int256 betResult;
     }
 
     // Private variables
@@ -96,6 +97,7 @@ contract Blackjack {
         Player[] memory allPlayers = new Player[](playerAddresses.length);
         for(uint256 i = 0; i < playerAddresses.length; i++ ) {
             allPlayers[i] = players[playerAddresses[i]];
+            allPlayers[i].addr = playerAddresses[i]; // also add the address of the player to the emitted object
         }
         return allPlayers;
     }
@@ -117,6 +119,9 @@ contract Blackjack {
         players[msg.sender].bet = bet;
         playerAddresses.push(msg.sender);
         totalBets += bet;
+
+        // Set phase to betting
+        phase = GamePhase.Betting;
     }
 
     function voteStart() external onlyPlayers inBettingPhase emitStateChange {
@@ -230,7 +235,6 @@ contract Blackjack {
         if (allPlayersDone) {
             // Dealer's turn
             // Reveal second dealer card
-            emit GameStateChanged(getPlayersInternal(), phase);
             while (players[address(0)].playerTotal < 17) {
                 // Deal with emiting reveal of all other cards
                 dealCard(address(0));
@@ -255,26 +259,37 @@ contract Blackjack {
     
     
                 // Insert into winnings array
+                int256 betResult;
                 if (playerBlackjack) {
-                   winnings[i - 1] = Structs.Payment({
+                    betResult = int256(players[playerAddr].bet * 3 / 2);
+                     winnings[i - 1] = Structs.Payment({
                         addr: playerAddr,
-                        amount: int256(players[playerAddr].bet * 3 / 2)
+                        amount: betResult
                     });
                 } else if (playerWon) {
+                    betResult = int256(players[playerAddr].bet);
                     winnings[i - 1] = Structs.Payment({
                         addr: playerAddr,
                         amount: int256(players[playerAddr].bet)
                     });
                 } else {
+                    betResult = -int256(players[playerAddr].bet);
                     winnings[i - 1] = Structs.Payment({
                         addr: playerAddr,
                         amount:  -int256(players[playerAddr].bet)
                     });
                 }
-            emit GameStateChanged(getPlayersInternal(), phase);
+                // Set the bet result in the player object
+                players[playerAddr].betResult = betResult;
             }
+
             // Pay out users
             mainContract.modifyFunds(winnings, false);
+
+
+
+            // Emit one last event with the game results
+            emit GameStateChanged(getPlayersInternal(), phase);
 
             // Reset game
             resetGame();
@@ -296,7 +311,7 @@ contract Blackjack {
         players[address(0)].hasVoted = true;
         
         // Set the phase to betting
-        phase = GamePhase.Betting;
+        phase = GamePhase.Ended;
         totalBets = 0;
     }
 }

@@ -50,15 +50,22 @@ const blackContractService = {
         if(!this.listenersDone){
             console.log("Adding the listeners...");
             this.listenersDone = true;
-            
             this.blackContract.events.GameStateChanged({ fromBlock: "latest" }).on("data", (e) => {
-                    // fired when we get a new log that matches the filters for the event type we subscribed to
-                    let values = e.returnValues;
-                    callbacks["GameStateChanged"]({
-                        players: values.players,
-                        phase: values.phase,
-                    });
-                });
+                // fired when we get a new log that matches the filters for the event type we subscribed to
+                let players = e.returnValues.players;
+                let phase = this.getGamePhaseString(Number(e.returnValues.phase));
+                // Convert to desired frontend format
+                players = players.map(player => ({
+                    addr: player.addr,
+                    bet: Web3.utils.fromWei(player.bet, "ether"),
+                    hasVoted: player.hasVoted,
+                    isDealer: player.isDealer,
+                    playerCards: player.playerCards.map(card => Number(card)),
+                    playerTotal: Number(player.playerTotal),  // Note: You need to define what playerTotal is
+                    hasStood: player.hasStood,
+                }));
+                callbacks['GameStateChanged']({players, phase});
+            });
 
             /*this.blackContract.events.PlayerJoined({fromBlock: "latest"}).on('data', e => {
                 // fired when we get a new log that matches the filters for the event type we subscribed to
@@ -98,11 +105,16 @@ const blackContractService = {
             });*/
         }
     },
-
+    async getGamePhaseString(n) {
+        switch (n){
+            case 0: return 'Ended';
+            case 1: return 'Betting';
+            case 2: return 'Playing';
+        }
+    },
     // Listener registerers
-
     async addGameStateListener(callback) {
-        callbacks['GameStateListener'] = callback;
+        callbacks['GameStateChanged'] = callback;
     },
     /*
     async addPlayerJoinedListener(callback) {
@@ -141,7 +153,7 @@ const blackContractService = {
     },
     async getGamePhase() {
         let phaseN = await this.blackContract.methods.phase().call();
-        return Number(phaseN) === 0 ? 'Betting' : 'Playing';
+        return this.getGamePhaseString(Number(phaseN));
     },
     async getTotalBets() {
         let total = await this.blackContract.methods.totalBets().call();
@@ -151,7 +163,6 @@ const blackContractService = {
         let players =  await this.blackContract.methods.maxPlayers().call();
         return Number(players);
     },
-
     // Room actions
     async joinGame(bet) {
         let betWei = Web3.utils.toWei(bet, "ether");
