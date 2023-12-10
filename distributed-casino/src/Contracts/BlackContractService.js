@@ -58,6 +58,7 @@ const blackContractService = {
                 players = players.map(player => ({
                     addr: player.addr,
                     bet: Web3.utils.fromWei(player.bet, "ether"),
+                    betResult: Web3.utils.fromWei(player.betResult, "ether"),
                     hasVoted: player.hasVoted,
                     isDealer: player.isDealer,
                     playerCards: player.playerCards.map(card => Number(card)),
@@ -105,7 +106,7 @@ const blackContractService = {
             });*/
         }
     },
-    async getGamePhaseString(n) {
+    getGamePhaseString(n) {
         switch (n){
             case 0: return 'Ended';
             case 1: return 'Betting';

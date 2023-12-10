@@ -25,66 +25,17 @@ function Blackjack() {
     const [gameEnded, setGameEnded] = useState(false) // If the game has ended
     const [players, setPlayers] = useState([]); // The structure of the users, reflects the blockchain status and its initialized with the dealer
 
-    /* Event listeners to contract events */
-    
-    /*const playerJoin = ({address, amount}) => {
-        setPlayers(prevPlayers => {
-            if (prevPlayers.filter(p => p.addr == address).length > 0)
-                return [...prevPlayers]
-            return([...prevPlayers, {
-            addr: address,
-            bet: amount,
-            playerCards: [],
-            hasStood: false,
-            bust: false,
-            hasVoted: false,
-        }])})
-    };
-    
-    let playerVote = ({address, totalVoted}) => {
-        setPlayers(prevPlayers => {
-            prevPlayers.find((p) => p.addr == address).hasVoted = true;
-            return [...prevPlayers];
-        });
-        setPlayersVoted(totalVoted);
-    }
-
-    const cardDeal = ({address, card}) => {
-        setPlayers(prevPlayers => {
-            prevPlayers.find((p) => p.addr == address).playerCards.push(card);
-            return [...prevPlayers];
-        })
-    }
-
-    const playerStand = ({address, total}) => {
-        setPlayers(prevPlayers => {
-            let player = prevPlayers.find((p) => p.addr == address);
-            player.hasStood = true;
-            if(total > 21) player.bust = true;
-            return [ ...prevPlayers ];       
-        })
-    }
-    */
+    /* Event listener for contract events */
     const gameStateChanged = (({players, phase}) => {
-        if(phase === 'Ended' && vote) {
+        if(phase === 'Ended' && players.length > 1) {
             // the game ended!!!!
             console.log('Game ended (with rizz)')
             setGameEnded(true);
-            // TODO set the user balance to the correct one in sidebar
-            return;
         }
         console.log('Game state changed')
         setPlayers(players);
         setGamePhase(phase)
     })
-    // Register listeners for contract events
-    const registerListeners = () => {
-        blackContractService.addGameStateListener(gameStateChanged);
-        //blackContractService.addPlayerJoinedListener(playerJoin);
-        //blackContractService.addPlayerVotedListener(playerVote);
-        //blackContractService.addCardDealtListener(cardDeal);
-        //blackContractService.addPlayerStoodListener(playerStand);
-    }
 
     const getRoomVariables = () => {
         blackContractService.getGamePhase().then(setGamePhase); // Get the current phase of the game
@@ -101,7 +52,7 @@ function Blackjack() {
     // To be done in page reload
     useEffect(() => {
         blackContractService.setupContract().then( () => {
-            registerListeners(); // Hook up event listeners
+            blackContractService.addGameStateListener(gameStateChanged);
             getRoomVariables(); // Get the basic information of the room
         }); 
     }, [])
@@ -152,12 +103,12 @@ function Blackjack() {
 
     // Helper function for retrieving a styled string with the status of a player based on his obj. attributes
     const getPlayerStatus = (player) => {
-        if (!player.stood)
-            return <h5 className="font-secondary fw-semibold">Playing</h5>
-        else if (!player.busted)
-            return <h5 className="font-primary fw-semibold">Stood</h5>
+        if (!player.hasStood)
+            return <h6 className="font-monospace text-secondary fw-semibold d-inline-block bg-dark p-1 rounded">Playing</h6>
+        else if (player.playerTotal <= 21)
+            return <h6 className="font-monospace fw-semibold text-primary d-inline-block bg-dark p-1 rounded">Stood</h6>
         else
-            return <h5 className="font-danger fw-semibold">Busted</h5>
+            return <h6 className="font-monospace fw-semibold d-inline-block bg-dark p-1 rounded">Busted</h6>
     }
     
     return (
@@ -264,53 +215,10 @@ function Blackjack() {
                             {players.filter((obj) => obj.addr == ADDRESS_0).map((player) => {
                                 return (
                                     <div key={player.addr} className="m-2 p-3 rounded">
-                                        <h1 className="font-monospace">
-                                            Dealer
-                                        </h1>
-                                        {player.playerCards.map((card) => (
-                                            <img
-                                                src={getCardLocation(card)}
-                                                className="mx-1 rounded"
-                                                height={100}
-                                            ></img>
-                                        ))}
-                                    </div>
-                                );
-                            })}
-                            { gameEnded && (
-                                <div className="d-flex flex-justify-center">
-                                    <div className="mb-2">The game has ended!</div>
-                                    <div className="mb-2">
-                                    {
-                                        (() => {
-                                            let player = players.find(obj => obj.addr === account);
-                                            let result = player.betResult ?? 0;
-                                            return (
-                                                <div>
-                                                    {result > 0 ? (
-                                                        <div>You won <span className="ms-1 text-primary fst-light">{result} ETH</span></div>
-                                                    ) : (
-                                                        <div>You lost <span className="ms-1 text-danger fst-light">{-result} ETH</span></div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })()
-                                    }
-                                    </div>
-                                <button className="btn-primary fs-4" onClick={resetUI}>Play again!</button>
-                                </div>
-                            )}
-                            {players.filter((obj) => obj.addr == account).map((player) => {
-                                return (
-                                    <div
-                                        key={player.addr}
-                                        className="m-2 p-3 rounded"
-                                    >
-                                        <h1 className="font-monospace">You</h1>
-                                        <h3 className="font-primary fw-semibold">
-                                            Your bet: {player.bet} ETH
-                                        </h3>
-                                        {getPlayerStatus(player)}
+                                        <div className="d-flex align-items-center">
+                                            <h1 className="me-2">Dealer</h1>
+                                            {getPlayerStatus(player)}
+                                        </div>
                                         <div>
                                             {player.playerCards.map((card) => (
                                                 <img
@@ -320,15 +228,63 @@ function Blackjack() {
                                                 ></img>
                                             ))}
                                         </div>
-                                        <div className="d-flex justify-content-aaround">
+                                    </div>
+                                );
+                            })}
+                            { gameEnded && (
+                                <div className="col-6 d-flex flex-column flex-justify-center border border-light rounded m-2 p-3 bg-dark">
+                                    <h3 className="mb-2">The game has ended!</h3>
+                                    <div className="mb-2">
+                                    {
+                                        (() => {
+                                            let player = players.find(obj => obj.addr === account);
+                                            let result = player.betResult ?? 0;
+                                            return (
+                                                <div>
+                                                    {result > 0 ? (
+                                                        <h3 className="text-success">You won <span className="ms-1 fst-bold">{result} ETH</span></h3>
+                                                    ) : (
+                                                        <h3 className="text-danger">You lost <span className="ms-1 fst-bold">{-result} ETH</span></h3>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()
+                                    }
+                                    </div>
+                                <button className="btn btn-primary fs-4" onClick={resetUI}>Play again!</button>
+                                </div>
+                            )}
+                            {players.filter((obj) => obj.addr == account).map((player) => {
+                                return (
+                                    <div
+                                        key={player.addr}
+                                        className="m-2 p-3 rounded"
+                                    >
+                                        <div className="d-flex align-items-center">
+                                            <h1 className="me-2">You</h1>
+                                            {getPlayerStatus(player)}
+                                        </div>                                        
+                                        <h3 className="font-primary fw-semibold">
+                                            Your bet: {player.bet} ETH
+                                        </h3>
+                                        <div className="mb-3">
+                                            {player.playerCards.map((card) => (
+                                                <img
+                                                    src={getCardLocation(card)}
+                                                    className="mx-1 rounded"
+                                                    height={100}
+                                                ></img>
+                                            ))}
+                                        </div>
+                                        <div className="d-flex">
                                             <button
-                                                className="btn btn-primary fs-2"
+                                                className="btn btn-primary fs-4 me-3"
                                                 onClick={hit}
                                             >
                                                 Hit
                                             </button>
                                             <button
-                                                className="btn btn-secondary fs-2"
+                                                className="btn btn-secondary fs-4"
                                                 onClick={stand}
                                             >
                                                 Stand
@@ -341,13 +297,13 @@ function Blackjack() {
                         <aside className="col-3">
                             {players.filter((obj) => obj.addr != account && obj.addr != ADDRESS_0).map((player) => (
                                     <div className="bg-dark m-2 p-3 rounded">
-                                        <h6 className="font-monospace fw-semibold">
-                                            {player.addr.substring(0, 6) + "..."}
-                                        </h6>
+                                        <div className="d-flex align-items-center">
+                                            <h5 className="me-2">You</h5>
+                                            {getPlayerStatus(player)}
+                                        </div>
                                         <p className="font-primary fw-semibold">
                                             {player.bet} ETH
                                         </p>
-                                        {getPlayerStatus(player)}
                                         {player.playerCards.map((card) => (
                                             <img
                                                 src={getCardLocation(card)}

@@ -53,8 +53,8 @@ contract Blackjack {
         _;
     }
 
-    modifier inBettingPhase() {
-        require(phase == GamePhase.Betting, "The game is not in the betting phase");
+    modifier notInPlayingPhase() {
+        require(phase != GamePhase.Playing, "The game has already started");
         _;
     }
 
@@ -66,11 +66,6 @@ contract Blackjack {
     modifier onlyPlayers() {
         require(players[msg.sender].bet > 0, "You are not a participant in the current game");
         _;
-    }
-
-    modifier emitStateChange() {
-        _;
-        emit GameStateChanged(getPlayersInternal(), phase);
     }
 
     constructor(uint256 _minimumBet, uint8 _maxPlayers, address _main_contract_addr) {
@@ -102,7 +97,7 @@ contract Blackjack {
         return allPlayers;
     }
 
-    function joinGame(uint256 bet) external inBettingPhase emitStateChange {
+    function joinGame(uint256 bet) external notInPlayingPhase {
         require(playerAddresses.length - 1 <= maxPlayers, "The maximum number of players was reached");
         
         require(bet >= minimumBet, "You need to bet more than the minimum bet");
@@ -122,9 +117,10 @@ contract Blackjack {
 
         // Set phase to betting
         phase = GamePhase.Betting;
+        emit GameStateChanged(getPlayersInternal(), phase);
     }
 
-    function voteStart() external onlyPlayers inBettingPhase emitStateChange {
+    function voteStart() external onlyPlayers notInPlayingPhase {
         // Check if player is registered for the game and has not voted
         require(!players[msg.sender].hasVoted, "User has already voted for the start of the game");
         players[msg.sender].hasVoted = true;
@@ -139,9 +135,11 @@ contract Blackjack {
         // Start the game if all players have voted
         if(votedCount == playerAddresses.length - 1)
             startGame();
+        if(phase != GamePhase.Ended)
+            emit GameStateChanged(getPlayersInternal(), phase);
     }
     
-    function startGame() internal inBettingPhase {
+    function startGame() internal {
         // Require there is at least one non-dealer user in the game
         require(playerAddresses.length > 1, "No players have placed bets");
 
@@ -193,19 +191,20 @@ contract Blackjack {
         players[_player].playerTotal = total;
 
         // Check if player has stood or busted
-        if (total == 21 && _player != address(0)) {
-            // Player got 21, stood automatically
-            players[_player].hasStood = true;
-            endPlayerTurn();
-        } else if (total > 21 && _player != address(0)) {
-            // Player busted
-            players[_player].hasStood = true;
-            endPlayerTurn();
+        if(_player != address(0)){
+            if (total >= 21) {
+                // Player got 21 or busted, stand and end turn
+                players[_player].hasStood = true;
+                endPlayerTurn();
+            } else {
+                // Notify about new card
+                 emit GameStateChanged(getPlayersInternal(), phase);
+            }
         }
     }
 
     // User turn actions
-    function hit() external onlyPlayers inPlayingPhase emitStateChange {
+    function hit() external onlyPlayers inPlayingPhase {
         // Ensure the player has not stood or busted
         require(!players[msg.sender].hasStood, "You have already stood or busted.");
 
@@ -213,7 +212,7 @@ contract Blackjack {
         dealCard(msg.sender);
     }
 
-    function stand() external onlyPlayers inPlayingPhase emitStateChange {
+    function stand() external onlyPlayers inPlayingPhase {
         // Ensure the player has not stood or busted
         require(!players[msg.sender].hasStood, "You have already stood or busted.");
 
@@ -286,13 +285,17 @@ contract Blackjack {
             // Pay out users
             mainContract.modifyFunds(winnings, false);
 
-
+            // Set the phase to ended
+            phase = GamePhase.Ended;
 
             // Emit one last event with the game results
             emit GameStateChanged(getPlayersInternal(), phase);
 
-            // Reset game
+            // Reset game state
             resetGame();
+            return;
+        } else { 
+            emit GameStateChanged(getPlayersInternal(), phase);
         }
     }
 
@@ -310,8 +313,6 @@ contract Blackjack {
         players[address(0)].isDealer = true;
         players[address(0)].hasVoted = true;
         
-        // Set the phase to betting
-        phase = GamePhase.Ended;
         totalBets = 0;
     }
 }
