@@ -298,7 +298,7 @@ function Blackjack() {
                             {players.filter((obj) => obj.addr != account && obj.addr != ADDRESS_0).map((player) => (
                                     <div className="bg-dark m-2 p-3 rounded">
                                         <div className="d-flex align-items-center">
-                                            <h5 className="me-2">You</h5>
+                                            <h5 className="me-2">{player.addr.substring(0,6)}...</h5>
                                             {getPlayerStatus(player)}
                                         </div>
                                         <p className="font-primary fw-semibold">

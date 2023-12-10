@@ -5,7 +5,6 @@ import "./Structs.sol";
 
 // Main contract interface
 interface Main {
-
     // The neccesary functions from the Main contract
     function getFunds(address user) external view returns (uint256);
     function getCasinoFunds() external view returns (uint256);
