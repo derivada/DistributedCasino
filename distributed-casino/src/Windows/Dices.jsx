@@ -23,6 +23,7 @@ function Dices() {
     const [vote, setVote] = useState(false); // If the user has voted for the start or not
     const [gameEnded, setGameEnded] = useState(false); // If the game has ended
     const [players, setPlayers] = useState([]); // The structure of the users, reflects the blockchain status
+    const [dices, setDices] = useState([])
 
     /* Event listener for contract events */
     const gameStateChanged = ({ players, phase }) => {
@@ -32,12 +33,19 @@ function Dices() {
         console.log("Game state changed");
         setPlayers(players);
         setGamePhase(phase);
+        diceContractService.getDices().then(obj => {
+            console.log(obj)
+            setDices(obj)
+        })
     };
 
     const getRoomVariables = () => {
         diceContractService.getGamePhase().then(setGamePhase); // Get the current phase of the game
         diceContractService.getMaxPlayers().then(setMaxPlayers); // Get the maximum amount of players of the game
         diceContractService.getRoundBet().then(setRoundBet); // Get the round bet of the game
+        diceContractService.getPlayers().then((p) => {
+            setPlayers(p)
+        });
     };
 
     // To be done in account change
@@ -84,6 +92,9 @@ function Dices() {
         setPlayers([]);
     };
     // Game actions, in Dices you can either hit (roll a dice) or stand (finish your turn)
+    const joinGame = () => {
+        diceContractService.joinGame();
+    }
     const hitBet = () => {
         diceContractService.bet();
     };
@@ -106,8 +117,142 @@ function Dices() {
         );
     };
 
-    const allPlayersVoted = () =>
-        players.length > 1 && players.every((p) => p.hasVoted);
+    const allPlayersVoted = () => players.length > 0 && players.every((p) => p.hasVoted);
+
+    const playComponent = () => (
+        <div  className="row rounded"  style={{ backgroundColor: "#458248" }}>
+            <div className="col-9">
+                {gameEnded && (
+                    <div className="col-6 d-flex flex-column flex-justify-center border border-light rounded m-2 p-3 bg-dark">
+                        <h3 className="mb-2">
+                            The game has ended!
+                        </h3>
+                        <div className="mb-2">
+                            {(() => {
+                                let player =players.find((obj) => obj.addr === account);
+                                let result = player && player.betResult ? player.betResult : 0;
+                                return (
+                                    <div>{result > 0 ? (
+                                            <h3 className="text-success">
+                                                You won{" "}
+                                                <span className="ms-1 fst-bold">{result}{" "}ETH</span>
+                                            </h3>
+                                        ) : (
+                                            <h3 className="text-danger">
+                                                You lost{" "}
+                                                <span className="ms-1 fst-bold">{result.slice}{" "}ETH</span>
+                                            </h3>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                        <button className="btn btn-primary fs-4" onClick={resetUI}>Play again!</button>
+                    </div>
+                )}
+                {players.filter((obj) => obj.addr == account).map((player) => {
+                    return (
+                        <div key={player.addr} className="m-2 p-3 rounded">
+                            <div className="d-flex align-items-center">
+                                <h1 className="me-2">You</h1>
+                                {getPlayerStatus(player)}
+                            </div>
+                            <h3 className="font-primary fw-semibold">
+                                Your bet:{" "}
+                                {player.bet} ETH
+                            </h3>
+                            <div className="mb-3">
+                                {dices.map((dice, index) => (
+                                    <img key={account + "-" + index} src={getDiceLocation(dice)} className="mx-1 rounded" height={100}></img>
+                                ))}
+                            </div>
+                            <div className="d-flex">
+                                <button className="btn btn-primary fs-4 me-3" onClick={hitBet}>
+                                    Hit
+                                </button>
+                                <button className="btn btn-secondary fs-4" onClick={stand}>
+                                    Stand
+                                </button>
+                            </div>
+                        </div>
+                    )})}
+            </div>
+            <aside className="col-3">
+                {players.filter((obj) =>  obj.addr != account).map((player) => (
+                    <div className="bg-dark m-2 p-3 rounded">
+                        <div className="d-flex align-items-center">
+                            <h5 className="me-2">{player.addr.substring(0,6)}...</h5>
+                            {getPlayerStatus(player)}
+                        </div>
+                        <p className="font-primary fw-semibold">{player.bet} ETH</p>
+                    </div>
+                    ))}
+            </aside>
+        </div>
+    )
+
+    const votingComponent = () => (
+        <>
+            <div className="p-2 rounded-2 mb-3 container">
+                <div className="row">
+                    <label className="fw-light fs-4 me-2 col-auto">
+                        Place a bet
+                    </label>
+                    <input value={bet} onChange={(e) => {setBet(e.target.value)}} type="text" className="form-control me-2 col"/>
+                    <button onClick={joinGame} disabled={!bet} className="btn btn-outline-primary col-2">
+                        Enter round
+                    </button>
+                </div>
+            </div>
+            <div className="p-2 rounded-2 mb-3 container">
+                <div className="row">
+                    <div className="fs-4 col">
+                        Players ready:
+                        <span className="text-warning ms-3 me-1">
+                            {players.filter((player) => player.hasVoted).length}
+                        </span>
+                        /
+                        <span className="text-primary px-1">
+                            {players.length}
+                        </span>
+                    </div>
+                    <button onClick={voteStart} disabled={!vote && !bet} className="btn btn-outline-primary col-2">
+                        I'm ready
+                    </button>
+                </div>
+            </div>
+        </>
+    )
+
+    const noJoinComponent = () => (
+        <div className="border border-primary rounded p-5">
+            <h3>
+                Sorry, the Dice game is already
+                running
+            </h3>
+            <h5 className="fw-light">
+                This page will refresh and you will
+                be able to join when it finishes
+            </h5>
+        </div>
+    )
+
+    const gameStartedComponent = () => {
+        if(players.filter(aux => aux.addr == account).length == 1)
+            return playComponent()
+        return noJoinComponent()
+    }
+
+    const canJoinComponent = () => (
+        <div className="border border-primary rounded p-5">
+            <h3 className="mb-3">
+                The game hasn't started yet!
+            </h3>
+            <button className="btn btn-outline-primary col-12" onClick={joinRoom}>
+                Start playing
+            </button>
+        </div>
+    )
 
     return (
         <div className="container-fluid">
@@ -132,133 +277,14 @@ function Dices() {
                         <div className="row" style={{ height: "80%" }}>
                             {/* Pre-game screen, asks if you want to join to the game if it has not already been started */}
                             <div className="col-12 d-flex align-items-center justify-content-center">
-                                {gamePhase === "Ended" || gamePhase === "Betting" ? (
-                                    <div className="border border-primary rounded p-5">
-                                        <h3 className="mb-3">
-                                            The game hasn't started yet!
-                                        </h3>
-                                        <button className="btn btn-outline-primary col-12" onClick={joinRoom}>
-                                            Start betting
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="border border-primary rounded p-5">
-                                        {/* Game is already running, ask the user to wait */}
-                                        <h3>
-                                            Sorry, the Dice game is already
-                                            running
-                                        </h3>
-                                        <h5 className="fw-light">
-                                            This page will refresh and you will
-                                            be able to join when it finishes
-                                        </h5>
-                                    </div>
-                                )}
+                                {canJoinComponent()}
                             </div>
                         </div>
                     ) : (
                         <div>
                             {/* Game screen, asks the user to place his bet and vote for the start, and then displays the game */}
-                            <div className="p-2 rounded-2 mb-3 container">
-                                <div className="row">
-                                    <label className="fw-light fs-4 me-2 col-auto">
-                                        Place a bet
-                                    </label>
-                                    <input value={bet} onChange={(e) => {setBet(e.target.value)}} type="text" className="form-control me-2 col"/>
-                                    <button onClick={enterBet} disabled={!bet} className="btn btn-outline-primary col-2">
-                                        Enter round
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="p-2 rounded-2 mb-3 container">
-                                <div className="row">
-                                    <div className="fs-4 col">
-                                        Players ready:
-                                        <span className="text-warning ms-3 me-1">
-                                            {players.filter((player) => player.hasVoted).length - 1}
-                                        </span>
-                                        /
-                                        <span className="text-primary px-1">
-                                            {players.length - 1}
-                                        </span>
-                                    </div>
-                                    <button onClick={voteStart} disabled={!vote && !bet} className="btn btn-outline-primary col-2">
-                                        I'm ready
-                                    </button>
-                                </div>
-                            </div>
-                            {allPlayersVoted() ? (
-                                <div  className="row rounded"  style={{ backgroundColor: "#458248" }}>
-                                    <div className="col-9">
-                                        {gameEnded && (
-                                            <div className="col-6 d-flex flex-column flex-justify-center border border-light rounded m-2 p-3 bg-dark">
-                                                <h3 className="mb-2">
-                                                    The game has ended!
-                                                </h3>
-                                                <div className="mb-2">
-                                                    {(() => {
-                                                        let player =players.find((obj) => obj.addr === account);
-                                                        let result = player && player.betResult ? player.betResult : 0;
-                                                        return (
-                                                            <div>{result > 0 ? (
-                                                                    <h3 className="text-success">
-                                                                        You won{" "}
-                                                                        <span className="ms-1 fst-bold">{result}{" "}ETH</span>
-                                                                    </h3>
-                                                                ) : (
-                                                                    <h3 className="text-danger">
-                                                                        You lost{" "}
-                                                                        <span className="ms-1 fst-bold">{result.slice(1)}{" "}ETH</span>
-                                                                    </h3>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    })()}
-                                                </div>
-                                                <button className="btn btn-primary fs-4" onClick={resetUI}>Play again!</button>
-                                            </div>
-                                        )}
-                                        {players.filter((obj) => obj.addr == account).map((player) => {
-                                            return (
-                                                <div key={player.addr} className="m-2 p-3 rounded">
-                                                    <div className="d-flex align-items-center">
-                                                        <h1 className="me-2">You</h1>
-                                                        {getPlayerStatus(player)}
-                                                    </div>
-                                                    <h3 className="font-primary fw-semibold">
-                                                        Your bet:{" "}
-                                                        {player.bet} ETH
-                                                    </h3>
-                                                    <div className="mb-3">
-                                                        {player.playerDices.map((dice) => (
-                                                            <img src={getDiceLocation(dice)} className="mx-1 rounded" height={100}></img>
-                                                        ))}
-                                                    </div>
-                                                    <div className="d-flex">
-                                                        <button className="btn btn-primary fs-4 me-3" onClick={hitBet}>
-                                                            Hit
-                                                        </button>
-                                                        <button className="btn btn-secondary fs-4" onClick={stand}>
-                                                            Stand
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )})}
-                                    </div>
-                                    <aside className="col-3">
-                                        {players.filter((obj) =>  obj.addr != account).map((player) => (
-                                            <div className="bg-dark m-2 p-3 rounded">
-                                                <div className="d-flex align-items-center">
-                                                    <h5 className="me-2">{player.addr.substring(0,6)}...</h5>
-                                                    {getPlayerStatus(player)}
-                                                </div>
-                                                <p className="font-primary fw-semibold">{player.bet} ETH</p>
-                                            </div>
-                                            ))}
-                                    </aside>
-                                </div>
-                            ) : (
+                            {votingComponent()}
+                            {allPlayersVoted() ? gameStartedComponent() : (
                                 <div>
                                     <h3>
                                         Welcome to the{" "}

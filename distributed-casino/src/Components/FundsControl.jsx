@@ -31,11 +31,7 @@ function FundsControl ({update}) {
             .then(setFunds)
             .catch((e) => setError(e.message));
 
-    const retrieveFunds = () =>
-        mainContractService
-            .retrieveFunds(retrieveAmount)
-            .then(setFunds)
-            .catch((e) => setError(e.message));
+    const retrieveFunds = () => mainContractService.retrieveFunds(retrieveAmount).then(setFunds).catch((e) => setError(e.message));
 
 
     return (
@@ -49,7 +45,7 @@ function FundsControl ({update}) {
                     </div>
                 )}
                 <div className="input-group form-input mb-3 row">
-                    <label htmlFor="addFundsInput" className="fs-4 mb-1">
+                    <label htmlFor="addFundsInput" className="fs-5 mb-1">
                         Select amount
                     </label>
                     <div className="d-flex">
@@ -67,11 +63,11 @@ function FundsControl ({update}) {
 
                 <button
                     onClick={addFunds}
-                    className="btn btn-outline-primary rounded fs-3 mb-3"
+                    className="btn btn-outline-primary rounded fs-5 mb-3"
                 >
                     Add funds
                 </button>
-                <div className="input-group form-input mb-3 row">
+                <div className="input-group form-input mb-3 w-75">
                     <input
                         id="retrieveRange"
                         type="range"
@@ -90,7 +86,7 @@ function FundsControl ({update}) {
                 </div>
                 <button
                     onClick={retrieveFunds}
-                    className="btn btn-outline-danger rounded fs-3 mb-3"
+                    className="btn btn-outline-danger rounded fs-5 mb-3"
                 >
                     Retrieve funds
                 </button>

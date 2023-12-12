@@ -25,7 +25,7 @@ contract Dices {
 
     // Game variables
     GamePhase public phase = GamePhase.Ended; 
-    uint256 public currentRound; // Round number
+    uint8 public currentRound; // Round number
     uint8 public playedCount; // Players that have played (or have already stood) this round
     uint8 maxTotal;
 
@@ -99,11 +99,11 @@ contract Dices {
     }
     
     // Other useful getter functions
-    function getDices() inPlayingPhase onlyPlayers internal view returns (uint8[] memory) {
+    function getDices() inPlayingPhase onlyPlayers external view returns (uint8[] memory) {
         return players[msg.sender].dices;
     }
 
-    function getPlayerTotal() inPlayingPhase onlyPlayers internal view returns (uint8) {
+    function getPlayerTotal() inPlayingPhase onlyPlayers external view returns (uint8) {
         return players[msg.sender].playerTotal;
     }
 
@@ -116,6 +116,7 @@ contract Dices {
         // Register player in the game
         players[msg.sender].bet = roundBet;
         playerAddresses.push(msg.sender);
+        emit GameStateChanged(getPlayersInternal(), phase);
     }
 
     // Users vote for the start of the game, when all users all ready, state switches and first dices are given
@@ -142,7 +143,7 @@ contract Dices {
     // User bets for the round, adding the round bet to his total.
     function bet() external inPlayingPhase onlyPlayers {
         // Check if user has not stood or already played this round
-        require(!players[msg.sender].hasStood, "You have already stood the game");
+        require(!players[msg.sender].hasStood, "You have already stood this game");
         require(!players[msg.sender].hasPlayed, "You have already bet this round");
 
         // Check in main contract if funds are enough (just in case funds were updated concurrently with the game)
@@ -160,8 +161,7 @@ contract Dices {
     }
 
     // A user stands the game, they lose the money betted in previous rounds
-    function stand() external onlyPlayers {
-        require(phase == GamePhase.Playing, "The game is not in the playing phase");
+    function stand() external inPlayingPhase onlyPlayers {
         require(players[msg.sender].hasStood == false, "You have already stood this game");
         require(players[msg.sender].hasPlayed == false, "You can't stand in this round after having bet");
         
@@ -185,6 +185,9 @@ contract Dices {
                 uint8 dice = uint8(uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, player_addr, players[player_addr].dices.length))) % 6) + 1;
                 players[player_addr].dices.push(dice);
                 players[player_addr].playerTotal += dice;
+                //  Set the new maximum total
+                if(maxTotal < players[player_addr].playerTotal) 
+                    maxTotal = players[player_addr].playerTotal;
                 players[player_addr].hasPlayed = false;
             } else {
                 playedCount++; // count as this stood played has already played
@@ -202,15 +205,15 @@ contract Dices {
 
     // Finishes the game and calls the main contract for payouts
     function endGame() internal {
-        phase = GamePhase.Ended;
-        uint256[] memory winners = new uint256[](playerAddresses.length - 1);
+        uint256[] memory winners = new uint256[](playerAddresses.length);
         uint256 winnersCount;
         uint256 winnersPot;
-        Structs.Payment[] memory winnings = new Structs.Payment[](playerAddresses.length - 1);
+        Structs.Payment[] memory winnings = new Structs.Payment[](playerAddresses.length);
         
         for(uint256 i = 0; i < playerAddresses.length; i++) {
             if(players[playerAddresses[i]].playerTotal == maxTotal){
-                winners[winnersCount++] = i;
+                winners[winnersCount] = i;
+                winnersCount++;
             } else {
                 winnersPot += players[playerAddresses[i]].bet;
                 winnings[i] = Structs.Payment({
@@ -220,8 +223,8 @@ contract Dices {
             }
         }
 
-        uint256 winAmount = winnersPot / winners.length;
-        uint256 rem = winnersPot % winners.length; // should be a negligible amount of wei, just for 0-sum
+        uint256 winAmount = winnersPot / winnersCount;
+        uint256 rem = winnersPot % winnersCount; // should be a negligible amount of wei, just for 0-sum
         winnings[winners[0]] = Structs.Payment({
                 addr: playerAddresses[winners[0]],
                 amount: int256(winAmount + rem)
@@ -237,6 +240,7 @@ contract Dices {
         mainContract.modifyFunds(winnings, true);
 
         // Emit one last event with the game results
+        phase = GamePhase.Ended;
         emit GameStateChanged(getPlayersInternal(), phase);
 
         // Reset the game

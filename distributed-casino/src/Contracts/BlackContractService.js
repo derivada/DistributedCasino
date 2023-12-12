@@ -140,7 +140,20 @@ const blackContractService = {
     // Getters for public contract variables
 
     async getPlayers() {
-        return await this.blackContract.methods.getPlayers().call();
+        return await this.blackContract.methods.getPlayers().call().then((players) => {
+            return players.map((player) => {
+                return {
+                    addr: player.addr,
+                    bet: Web3.utils.fromWei(player.bet, "ether"),
+                    betResult: Web3.utils.fromWei(player.betResult, "ether"),
+                    hasVoted: player.hasVoted,
+                    isDealer: player.isDealer,
+                    playerCards: player.playerCards.map(card => Number(card)),
+                    playerTotal: Number(player.playerTotal),  // Note: You need to define what playerTotal is
+                    hasStood: player.hasStood,
+                }
+            })
+        });
     },
     async getContractOwner() {
         return await this.blackContract.methods.owner().call();

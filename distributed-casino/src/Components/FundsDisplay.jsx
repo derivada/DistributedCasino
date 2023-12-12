@@ -16,8 +16,16 @@ function FundsDisplay() {
     return (
         <section className="rounded px-2">
             <h2 className="fw-semibold">Current Funds</h2>
-            <h5>Account: <p className="font-monospace text-primary mb-3">{account ?? 'Not linked'}</p></h5>
-            <h3>Funds: <p className="text-primary">{funds+" ETH"}</p></h3>
+            <h5>
+                Account:
+                <span className="ms-2 font-monospace text-primary mb-3" style={{ wordWrap: 'break-word' }}>
+                    {account ?? 'Not linked'}
+                </span>
+            </h5>
+            <h5>
+                Funds:
+                 <span className="ms-2 text-primary">{funds+" ETH"}</span>
+            </h5>
         </section>
     );
 }

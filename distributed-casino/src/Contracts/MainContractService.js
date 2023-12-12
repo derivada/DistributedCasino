@@ -70,8 +70,17 @@ const mainContractService = {
             throw new Error("Transaction didn't succeed");
         }
         return this.getFunds();
+    },
+    
+    async getCasinoFunds() {
+        if (!this.mainContract) throw new Error("Account is not linked yet");
+        try {
+            let casinoWei =  await this.mainContract.methods.getCasinoFunds().call({from: this.account});
+            return Web3.utils.fromWei(casinoWei, "ether");
+        } catch (error) {
+            throw new Error("Transaction didn't succeed");
+        }
     }
-
 };
 
 export default mainContractService;

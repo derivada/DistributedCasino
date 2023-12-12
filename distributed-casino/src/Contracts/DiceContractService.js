@@ -6,13 +6,14 @@ const callbacks = {
         return;
     },
 };
-const dicesContractService = {
+const diceContractService = {
     web3: null,
     diceContract: null,
     account: null,
     minimumBet: 0,
     events: {},
     listenersDone: false,
+    phase: "Ended",
     // Account setup
     async setupAccount(acc) {
         this.account = acc;
@@ -24,10 +25,10 @@ const dicesContractService = {
         this.web3 = new Web3(window.ethereum);
         await window.ethereum.enable();
         const networkId = await this.web3.eth.net.getId();
-        const networkData = DiceContractArtifact.networks[networkId];
+        const networkData = DicesContractArtifact.networks[networkId];
         if (networkData) {
             this.diceContract = new this.web3.eth.Contract(
-                DiceContractArtifact.abi,
+                DicesContractArtifact.abi,
                 networkData.address
             );
         } else {
@@ -39,36 +40,26 @@ const dicesContractService = {
         } catch (error) {
             console.log(error);
         }
-
+        this.phase = await this.diceContract.methods.phase.call()
         if (!this.listenersDone) {
             console.log("Adding the listeners...");
             this.listenersDone = true;
-            this.diceContract.events
-                .GameStateChanged({ fromBlock: "latest" })
-                .on("data", (e) => {
-                    // fired when we get a new log that matches the filters for the event type we subscribed to
-                    let players = e.returnValues.players;
-                    let phase = this.getGamePhaseString(
-                        Number(e.returnValues.phase)
-                    );
-                    // Convert to desired frontend format
-                    players = players.map((player) => ({
-                        addr: player.addr,
-                        bet: Web3.utils.fromWei(player.bet, "ether"),
-                        betResult: Web3.utils.fromWei(
-                            player.betResult,
-                            "ether"
-                        ),
-                        hasVoted: player.hasVoted,
-                        isDealer: player.isDealer,
-                        playerCards: player.playerCards.map((card) =>
-                            Number(card)
-                        ),
-                        playerTotal: Number(player.playerTotal), // Note: You need to define what playerTotal is
-                        hasStood: player.hasStood,
-                    }));
-                    callbacks.GameStateChanged({ players, phase });
-                });
+            this.diceContract.events.GameStateChanged({ fromBlock: "latest" }).on("data", (e) => {
+                // fired when we get a new log that matches the filters for the event type we subscribed to
+                let players = e.returnValues.players;
+                this.phase = this.getGamePhaseString(
+                    Number(e.returnValues.phase)
+                );
+                // Convert to desired frontend format
+                players = players.map((player) => ({
+                    addr: player.addr,
+                    bet: Web3.utils.fromWei(player.bet, "ether"),
+                    hasVoted: player.hasVoted,
+                    hasPlayed: player.hasPlayed,
+                    hasStood: player.hasStood,
+                }));
+                callbacks.GameStateChanged({ players, phase: this.phase });
+            });
         }
     },
 
@@ -77,8 +68,6 @@ const dicesContractService = {
             case 0:
                 return "Ended";
             case 1:
-                return "Entering";
-            case 2:
                 return "Playing";
         }
     },
@@ -89,7 +78,29 @@ const dicesContractService = {
 
 
     async getPlayers() {
-        return await this.diceContract.methods.getPlayers().call();
+        return await this.diceContract.methods.getPlayers().call().then((players) => {
+            return players.map((player) => {
+                return {
+                    addr: player.addr,
+                    bet: Web3.utils.fromWei(player.bet, "ether"),
+                    hasVoted: player.hasVoted,
+                    isDealer: player.isDealer,
+                    playerTotal: Number(player.playerTotal),  // Note: You need to define what playerTotal is
+                    hasStood: player.hasStood,
+                    hasPlayed: player.hasPlayed,
+                }
+            })
+        });
+    },
+    async getDices() {
+        try {
+            if (this.phase == "Playing") {
+                return await this.diceContract.methods.getDices().call({from: this.account});
+            }
+        } catch (error) {
+            console.log(error)
+        }
+        return []
     },
     async getContractOwner() {
         return await this.diceContract.methods.owner().call();
@@ -97,8 +108,8 @@ const dicesContractService = {
     async getMainContract() {
         return await this.diceContract.methods.mainContractAddr().call();
     },
-    async getMinimumBet() {
-        let minBet = await this.diceContract.methods.minimumBet().call();
+    async getRoundBet() {
+        let minBet = await this.diceContract.methods.roundBet().call();
         return Web3.utils.fromWei(minBet, "ether");
     },
     async getGamePhase() {
@@ -114,13 +125,10 @@ const dicesContractService = {
         return Number(players);
     },
     // Room actions
-    async joinGame(bet) {
-        let betWei = Web3.utils.toWei(bet, "ether");
+    async joinGame() {
         if (!this.diceContract) return null;
         try {
-            await this.diceContract.methods
-                .joinGame(betWei)
-                .send({ from: this.account });
+            await this.diceContract.methods.joinGame().send({ from: this.account });
         } catch (error) {
             if (error.data) console.log(error.data.message);
         }
@@ -129,9 +137,7 @@ const dicesContractService = {
     async voteStart() {
         if (!this.diceContract) return null;
         try {
-            await this.diceContract.methods
-                .voteStart()
-                .send({ from: this.account });
+            await this.diceContract.methods.voteStart().send({ from: this.account });
         } catch (error) {
             if (error.data) console.log(error.data.message);
         }
@@ -149,14 +155,14 @@ const dicesContractService = {
         }
     },
 
-    async hit() {
+    async bet() {
         if (!this.diceContract) return null;
         try {
-            await this.diceContract.methods.hit().send({ from: this.account });
+            await this.diceContract.methods.bet().send({ from: this.account });
         } catch (error) {
             if (error.data) console.log(error.data.message);
         }
     },
 };
 
-export default dicesContractService;
+export default diceContractService;

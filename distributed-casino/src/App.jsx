@@ -8,6 +8,7 @@ import Dices from "./Windows/Dices";
 import ErrorPage from "./Windows/404";
 
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import Statement from './Windows/Statement';
 
 
 const router = createBrowserRouter([
@@ -23,6 +24,10 @@ const router = createBrowserRouter([
     {
         path: "/dices",
         element: <Dices />,
+    },
+    {
+        path: "/statement",
+        element: <Statement />,
     },
 ]);
 

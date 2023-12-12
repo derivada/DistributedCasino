@@ -52,14 +52,16 @@ const games = [
 function Home() {
 
     return (
-        <div className="container">
+        <div>
             <Navbar selectedLink="Home" />
-            <div className="row">
-                <main className="col-9 mt-5 pt-5">
-                    <h1 className="fw-bold">Play</h1>
-                    <section className="row">{games.map(GameCard)}</section>
-                </main>
-                <FundsControl />
+            <div className="container-fluid mt-3">
+                <div className="row">
+                    <main className="col ms-5">
+                        <h1 className="fw-bold">Play</h1>
+                        <section className="row">{games.map(GameCard)}</section>
+                    </main>
+                    <FundsControl />
+                </div>
             </div>
         </div>
     );
