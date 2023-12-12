@@ -96,6 +96,25 @@ contract Blackjack {
         return allPlayers;
     }
 
+     // Some other useful getters
+    function getCards() external view onlyPlayers inPlayingPhase returns (uint8[] memory) {
+        require(players[msg.sender].playerCards.length > 0, "Player cards not initialized");
+        // Gets the current player cards
+        return players[msg.sender].playerCards;
+    }
+    function getPlayerTotal() external view onlyPlayers inPlayingPhase returns (uint8) {
+        return players[msg.sender].playerTotal;
+    }
+    
+    function hasStood() external view onlyPlayers inPlayingPhase returns (bool) {
+        return players[msg.sender].hasStood;
+    }
+    function getDealerCard() external view onlyPlayers inPlayingPhase returns (uint8) {
+        require(players[address(0)].playerCards.length > 0, "Dealer cards not initialized");
+        // Gets the initial dealer card
+        return players[address(0)].playerCards[0];
+    }
+
     function joinGame(uint256 bet) external notInPlayingPhase {
         require(playerAddresses.length - 1 <= maxPlayers, "The maximum number of players was reached");
         
@@ -260,7 +279,7 @@ contract Blackjack {
                 int256 betResult;
                 if (playerBlackjack) {
                     betResult = int256(players[playerAddr].bet * 3 / 2);
-                     winnings[i - 1] = Structs.Payment({
+                    winnings[i - 1] = Structs.Payment({
                         addr: playerAddr,
                         amount: betResult
                     });

@@ -38,7 +38,13 @@ const games = [
         desc: "Get rich quick scheme moments",
         imageSrc: "/images/blackjack.png",
         linkUrl: "/blackjack"
-    }
+    },
+    {
+        name: "Krazy Dices",
+        desc: "Give your mortgage a nice roll",
+        imageSrc: "/images/crazy.jpeg",
+        linkUrl: "/dices"
+    },
 ];
 
 

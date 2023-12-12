@@ -6,7 +6,7 @@ import "../Styles/custom.css";
 
 function GameCard({ name, imageSrc, desc, linkUrl }) {
     return (
-        <div className="card rounded col-3 m-2 p-3 rounded bg-secondary-subtle">
+        <div id="name" className="card rounded col-3 m-2 p-3 rounded bg-secondary-subtle">
             <img
                 src={imageSrc}
                 className="card-img-top"

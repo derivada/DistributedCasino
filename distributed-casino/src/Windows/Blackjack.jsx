@@ -16,6 +16,7 @@ const ADDRESS_0 = "0x0000000000000000000000000000000000000000"; // address(0), t
 function Blackjack() {
     // React variables
     const [account, setAccount] = useStore('account'); // The account of the players, stored as global state
+
     const [gamePhase, setGamePhase] = useState('Betting') // The state of the game
     const [maxPlayers, setMaxPlayers] = useState(0); // The maximum amount of players in this room
     const [wantsToJoin, setWantsToJoin] = useState(false) // If the user wants to join the game or not
@@ -25,16 +26,17 @@ function Blackjack() {
     const [gameEnded, setGameEnded] = useState(false) // If the game has ended
     const [players, setPlayers] = useState([]); // The structure of the users, reflects the blockchain status and its initialized with the dealer
 
+    
+
     /* Event listener for contract events */
     const gameStateChanged = (({players, phase}) => {
         if(phase === 'Ended' && players.length > 1) {
-            // the game ended!!!!
-            console.log('Game ended (with rizz)')
             setGameEnded(true);
         }
         console.log('Game state changed')
         setPlayers(players);
         setGamePhase(phase)
+
     })
 
     const getRoomVariables = () => {
@@ -72,6 +74,7 @@ function Blackjack() {
               });
             setPlayers([... players]);
             setWantsToJoin(true);
+            setGameEnded(false);
         })
     }
 
@@ -108,8 +111,10 @@ function Blackjack() {
         else if (player.playerTotal <= 21)
             return <h6 className="font-monospace fw-semibold text-primary d-inline-block bg-dark p-1 rounded">Stood</h6>
         else
-            return <h6 className="font-monospace fw-semibold d-inline-block bg-dark p-1 rounded">Busted</h6>
+            return <h6 className="font-monospace fw-semibold text-danger d-inline-block bg-dark p-1 rounded">Busted</h6>
     }
+
+    const allPlayersVoted = () => players.length > 1 && players.every((p) => p.hasVoted)
     
     return (
         <div className="container-fluid">
@@ -206,7 +211,7 @@ function Blackjack() {
                             </button>
                         </div>
                     </div>
-                    {vote ? (
+                    {allPlayersVoted() ? (
                     <div
                         className="row rounded"
                         style={{ backgroundColor: "#458248" }}
@@ -238,13 +243,13 @@ function Blackjack() {
                                     {
                                         (() => {
                                             let player = players.find(obj => obj.addr === account);
-                                            let result = player.betResult ?? 0;
+                                            let result = (player && player.betResult) ? player.betResult : 0;
                                             return (
                                                 <div>
                                                     {result > 0 ? (
                                                         <h3 className="text-success">You won <span className="ms-1 fst-bold">{result} ETH</span></h3>
                                                     ) : (
-                                                        <h3 className="text-danger">You lost <span className="ms-1 fst-bold">{-result} ETH</span></h3>
+                                                        <h3 className="text-danger">You lost <span className="ms-1 fst-bold">{result.slice(1)} ETH</span></h3>
                                                     )}
                                                 </div>
                                             );
@@ -323,7 +328,7 @@ function Blackjack() {
                     )}
                     </div>)}
                 </main>
-                <FundsControl/>
+                <FundsControl update={gamePhase}/>
             </div>
         </div>
     );

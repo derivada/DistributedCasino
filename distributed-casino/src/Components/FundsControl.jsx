@@ -6,7 +6,7 @@ import FundsDisplay from "./FundsDisplay";
 import Leaderboards from "./Leaderboards";
 import mainContractService from "../Contracts/MainContractService";
 
-function FundsControl () {
+function FundsControl ({update}) {
 
     const [account, setAccount] = useStore("account");
     const [funds, setFunds] = useStore("funds")
@@ -16,6 +16,14 @@ function FundsControl () {
     const [error, setError] = useState("");
 
     useEffect(() => setError(""), [funds]);
+
+    useEffect(() => {
+        mainContractService.getFunds().then((amount) => {
+            if (amount) {
+                setFunds(amount);
+            }
+        })
+    }, [update])
 
     const addFunds = () =>
         mainContractService

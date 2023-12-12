@@ -1,6 +1,6 @@
 import Web3 from "web3";
 import BlackContractArtifact from "./Blackjack.json" // Replace with your contract's JSON file
-import {getCardName} from "./../cards"
+
 const callbacks = {
     PlayerJoined: () => {return},
     PlayerVoted: () => {return},
