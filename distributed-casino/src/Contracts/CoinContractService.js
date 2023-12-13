@@ -79,6 +79,15 @@ const coinContractService = {
         return await this.coinContract.methods.getPlayers().call()
     },
 
+    async getCoin() {
+        if (!this.coinContract) return;
+        this.coinContract.methods.lastWinner().call().then((winner) => {
+            this.coinContract.methods.getPlayers().call().then((players) => {
+                return players.filter((aux) => aux.addr == winner).side;
+            })
+        });
+    },
+
     // Room actions
     async joinGame() {
         if (!this.coinContract) return null;
@@ -100,10 +109,10 @@ const coinContractService = {
         }
     },
 
-    async chooseSide() {
+    async chooseSide(heads) {
         if (!this.coinContract) return null;
         try {
-            await this.coinContract.methods.chooseSide().send({ from: this.account })
+            await this.coinContract.methods.chooseSide(heads).send({ from: this.account })
         } catch (error) {
             console.log(error)
         }

@@ -41,7 +41,7 @@ const games = [
     },
     {
         name: "Blackjack",
-        desc: "Hit or stand, say goodbye to the college fund! 🎲💸",
+        desc: "Hit or stand, say goodbye to your son's college fund! 🎲💸",
         imageSrc: "/images/blackjack.jpg",
         linkUrl: "/blackjack"
     },

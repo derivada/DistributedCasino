@@ -17,7 +17,7 @@ function CoinFlip() {
     // React variables
     const [account, setAccount] = useStore("account"); // The account of the players, stored as global state
 
-    const [coin, setCoin] = useState(-1)
+    const [coin, setCoin] = useState(true)
     const [gamePhase, setGamePhase] = useState("Betting"); // The state of the game
     const [wantsToJoin, setWantsToJoin] = useState(false); // If the user wants to join the game or not
     const [gameEnded, setGameEnded] = useState(false); // If the game has ended
@@ -28,12 +28,13 @@ function CoinFlip() {
         if (phase == "Ended") {
             setGameEnded(true);
         }
+
         setGamePhase(phase);
         setPlayers(playersIn);
+        coinContractService.getCoin(setCoin);
     };
 
     const getRoomVariables = () => {
-        console.log('room variables')
         coinContractService.getPlayers().then(setPlayers)
     };
     console.log(players)
@@ -74,7 +75,10 @@ function CoinFlip() {
     };
     // Game actions, in Coins continue playing (wantsDouble = true) or retire (wantsDouble = false)
     const joinGame = () => coinContractService.joinGame();
-    const hitBet = () => coinContractService.bet();
+    const chooseSide = (heads) => {
+        console.log('click')
+        coinContractService.chooseSide(heads)
+    }
     const voteDouble = (vote) => coinContractService.voteDouble(vote)
 
     // Helper function for retrieving a styled string with the status of a player based on his obj. attributes
@@ -86,33 +90,27 @@ function CoinFlip() {
         return (<h6 className="font-monospace fw-semibold text-warning d-inline-block bg-dark p-1 rounded">Stood </h6>);
     };
 
-    const playersReady = () => numPlayers() == 2;
+    const playersReady = () => (numPlayers() == 2 && players.filter(p=>p.hasVoted).length==2);
 
     const numPlayers = () => players.filter(p => p.addr != ADDRESS_0).length
 
-    const coinComponent = () => {
-        if (coin == -1)
-            return null
-        return (<img key="coin" src={getCoinLocation(coin)} className="mx-1 rounded" height={100}/>
-        );
-    }
+    const coinComponent = () => (
+        <img key="coin" src={getCoinLocation(coin)} className="mx-1 rounded" height={100}/>
+    )
 
     const playComponent = () => (
-        <div className="row rounded" style={{ backgroundColor: "#458248" }}>
+        <div className="row rounded">
             <div className="col-9">
-                {players
-                    .filter((obj) => obj.addr == account)
-                    .map((player) => {
-                        return (
-                            <div key={player.addr} className="m-2 p-3 rounded">
-                                <div className="d-flex align-items-center">
-                                    <h1 className="me-2">You</h1>
-                                    {getPlayerStatus(player)}
-                                </div>
-                                <h3 className="font-primary fw-semibold">Your bet: {player.bet} ETH</h3>
+                {players.filter((obj) => obj.addr == account).map((player) => {
+                    return (
+                        <div key={player.addr} className="m-2 p-3 rounded">
+                            <div className="d-flex align-items-center">
+                                <h1 className="me-2">You</h1>
+                                {getPlayerStatus(player)}
                             </div>
-                        );
-                    })}
+                        </div>
+                    );
+                })}
                 {coinComponent()}
                 {gameEnded && (
                     <div className="col-6 d-flex flex-column flex-justify-center border border-light rounded m-2 p-3 bg-dark">
@@ -140,10 +138,13 @@ function CoinFlip() {
                                 );
                             })()}
                         </div>
-                        <button className="btn btn-primary fs-4 me-3" onClick={() => voteDouble(true)}>Continue playing</button>
-                        <button className="btn btn-secondary fs-4" onClick={() => voteDouble(false)}>Stand</button>
                     </div>
+
                 )}
+                <div className="d-flex justify-content-betwen p-2">
+                    <button className="btn btn-primary fs-4 me-3" onClick={() => voteDouble(true)}>Double the bet</button>
+                    <button className="btn btn-secondary fs-4" onClick={() => voteDouble(false)}>Leave the game</button>
+                </div>
             </div>
             <aside className="col-3">
                 {players.filter((obj) => obj.addr != account).map((player, index) => (
@@ -161,7 +162,15 @@ function CoinFlip() {
         </div>
     );
 
-    const waitingComponent = () => (
+    const isTaken = (heads) => (players.filter(p => p.side == heads).length == 0)
+
+    const chooseButton = (heads) => (
+        <button onClick={()=>chooseSide(heads)} enabled={()=>!isTaken(heads)} className="btn btn-dark m-3">
+            <img src={getCoinLocation(heads)} className="mx-1 rounded"height={100}/>
+            <h1>{heads? "Heads": "Tails"}</h1>
+        </button>);
+
+    const waitingComponent = () => (-
         <>
             <div className="p-2 rounded-2 mb-3 container">
                 <div className="row">
@@ -178,7 +187,15 @@ function CoinFlip() {
                         /
                         <span className="text-primary px-1">2</span>
                     </div>
+                   
                 </div>
+                <div className="fs-4 d-flex flex-column">
+                        <h3 className="text-primary">Choose your side:</h3>
+                        <div className="d-flex">
+                            {chooseButton(true)}
+                            {chooseButton(false)}
+                        </div>
+                    </div>
             </div>
         </>
     );
@@ -194,6 +211,7 @@ function CoinFlip() {
     );
 
     const gameStartedComponent = () => {
+        console.log(players)
         if (players.filter((aux) => aux.addr == account).length == 1)
             return playComponent();
         return noJoinComponent();
@@ -208,7 +226,7 @@ function CoinFlip() {
 
     return (
         <div className="container-fluid">
-            <Navbar selectedLink="Coin flip" />
+            <Navbar selectedLink="Coinflip" />
             <div className="row pt-3 ps-3">
                 <main className="col">
                     <div className="d-flex justify-content-between">
@@ -227,17 +245,20 @@ function CoinFlip() {
                     ) : (
                         <div>
                             {/* Game screen, asks the user to place his bet and vote for the start, and then displays the game */}
-                            {waitingComponent()}
                             {playersReady() ? (
                                 gameStartedComponent()
                             ) : (
-                                <div>
-                                    <h3>
-                                        Welcome to the{" "}
-                                        <span className="fw-light text-primary">All<span className="fw-semibold">In</span>Casino's{" "}</span>{" "}Flip room
-                                    </h3>
-                                    <h5>The game will start when all players areready</h5>
-                                </div>
+                                <>
+                                    <div>
+                                        <h3>
+                                            Welcome to the{" "}
+                                            <span className="fw-light text-primary">All<span className="fw-semibold">In</span>Casino's{" "}</span>{" "}Flip room
+                                        </h3>
+                                        <h5>The game will start when all players choose their coin side</h5>
+                                    </div>
+                                    
+                                    {waitingComponent()}
+                                </>
                             )}
                         </div>
                     )}
