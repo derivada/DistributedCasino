@@ -27,21 +27,27 @@ function Dices() {
 
     /* Event listener for contract events */
     const gameStateChanged = ({ playersIn, phase }) => {
-        if (phase == "Ended" && allPlayersVoted()) {
-            playersIn.filter()
+        if (phase == "Ended") {
             setGameEnded(true);
         }
         // First set the phase of the game to the received one
-        setGamePhase(phase); 
+        setGamePhase(phase);
+        setPlayers(playersIn)
         if(phase == 'Playing'){
-            // Get your dices from contract after receiving the event
             diceContractService.getDices().then(setDices)
-        } else {
-            // The event will give all the dices that a player could have
-            setPlayers(playersIn)
         }
     };
 
+    useEffect(() => {
+        if (!players)
+            return
+        const currentPlayer = players.find(p => p.addr === account);
+        if (currentPlayer && currentPlayer.dices && currentPlayer.dices.length === 3) {
+            console.log('getting final dices');
+            setDices(currentPlayer.dices);
+        }
+    }, [players]);
+    
     const getRoomVariables = () => {
         diceContractService.getMaxPlayers().then(setMaxPlayers); // Get the maximum amount of players of the game
         diceContractService.getRoundBet().then(setRoundBet); // Get the round bet of the game
@@ -134,6 +140,12 @@ function Dices() {
 
     const allPlayersVoted = () => players.length > 0 && players.every((p) => p.hasVoted);
 
+    const otherDices = (index) => {
+        return players.filter(p=>p.addr!=account)[index].dices.map((dice,idx)=>(
+            <img key={index + "-" + idx} src={getDiceLocation(dice)} className="mx-1 rounded" height={100}></img>
+        ))
+    }
+
     const playComponent = () => (
         <div  className="row rounded"  style={{ backgroundColor: "#458248" }}>
             <div className="col-9">
@@ -155,7 +167,7 @@ function Dices() {
                                         ) : (
                                             <h3 className="text-danger">
                                                 You lost{" "}
-                                                <span className="ms-1 fst-bold">{result.slice}{" "}ETH</span>
+                                                <span className="ms-1 fst-bold">{result}{" "}ETH</span>
                                             </h3>
                                         )}
                                     </div>
@@ -193,13 +205,13 @@ function Dices() {
                     )})}
             </div>
             <aside className="col-3">
-                {players.filter((obj) =>  obj.addr != account).map((player) => (
+                {players.filter((obj) =>  obj.addr != account).map((player,index) => (
                     <div className="bg-dark m-2 p-3 rounded">
                         <div className="d-flex align-items-center">
                             <h5 className="me-2">{player.addr.substring(0,6)}...</h5>
                             {getPlayerStatus(player)}
                             <div className="mb-3">
-
+                                {players[0] && players[0].dices && players[0].dices.length > 1 && (otherDices(index))}
                             </div>
                         </div>
                         <p className="font-primary fw-semibold">{player.bet} ETH</p>

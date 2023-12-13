@@ -1,8 +1,3 @@
-import React from 'react';
-
-import { useStore } from "react-context-hook";
-
-
 import Web3 from "web3";
 import DicesContractArtifact from "./Dices.json"; // Replace with your contract's JSON file
 
@@ -128,8 +123,8 @@ const diceContractService = {
     },
     async getRoundBet() {
         if (!this.diceContract) return;
-        let roundBet = await this.diceContract.methods.roundBet().call();
-        return Web3.utils.fromWei(roundBet, "ether");
+        let minBet = await this.diceContract.methods.roundBet().call();
+        return Web3.utils.fromWei(minBet, "ether");
     },
     async getGamePhase() {
         if (!this.diceContract) return;
