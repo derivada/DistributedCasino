@@ -11,6 +11,8 @@ import coinContractService from "../Contracts/CoinContractService";
 
 import { getCoinLocation } from "../coins";
 
+const ADDRESS_0 = "0x0000000000000000000000000000000000000000"; // address(0), the address of the cards dealer
+
 function CoinFlip() {
     // React variables
     const [account, setAccount] = useStore("account"); // The account of the players, stored as global state
@@ -18,7 +20,6 @@ function CoinFlip() {
     const [coin, setCoin] = useState(-1)
     const [gamePhase, setGamePhase] = useState("Betting"); // The state of the game
     const [wantsToJoin, setWantsToJoin] = useState(false); // If the user wants to join the game or not
-    const [roundBet, setRoundBet] = useState(0); // The bet per round in the room
     const [gameEnded, setGameEnded] = useState(false); // If the game has ended
     const [players, setPlayers] = useState([]); // The structure of the users, reflects the blockchain status
 
@@ -32,9 +33,10 @@ function CoinFlip() {
     };
 
     const getRoomVariables = () => {
-        
+        console.log('room variables')
+        coinContractService.getPlayers().then(setPlayers)
     };
-
+    console.log(players)
     // To be done in account change.
     useEffect(() => {
         coinContractService.setupAccount(account);
@@ -53,9 +55,8 @@ function CoinFlip() {
         coinContractService.getPlayers().then((players) => {
             players.forEach((player) => {
                 console.log("Player Information:");
-                console.log("Bet:", player.bet);
                 console.log("Has Voted:", player.hasVoted);
-                console.log("Has Stood:", player.hasStood);
+                console.log("Wants double:", player.wantsDouble);
                 console.log("-------------");
             });
             setPlayers([...players]);
@@ -65,52 +66,29 @@ function CoinFlip() {
         getRoomVariables();
     };
 
-    const voteStart = () => {
-        diceContractService.voteStart().then(() => {
-            setVote(true);
-        });
-    };
     const resetUI = () => {
         // Destroys all room variables and sends user to the join a game screen
         setWantsToJoin(false);
-        setVote(false);
         setGameEnded(false);
         setPlayers([]);
     };
-    // Game actions, in Dices you can either hit (roll a dice) or stand (finish your turn)
-    const joinGame = () => {
-        coinContractService.joinGame();
-    };
-    const hitBet = () => {
-        coinContractService.bet();
-    };
-    const stand = () => {
-        diceContractService.stand();
-    };
+    // Game actions, in Coins continue playing (wantsDouble = true) or retire (wantsDouble = false)
+    const joinGame = () => coinContractService.joinGame();
+    const hitBet = () => coinContractService.bet();
+    const voteDouble = (vote) => coinContractService.voteDouble(vote)
 
     // Helper function for retrieving a styled string with the status of a player based on his obj. attributes
     const getPlayerStatus = (player) => {
-        if (!player.hasPlayed)
-            return (
-                <h6 className="font-monospace text-secondary fw-semibold d-inline-block bg-dark p-1 rounded">
-                    Choosing
-                </h6>
-            );
-        else if (!player.hasStood)
-            return (
-                <h6 className="font-monospace text-primary fw-semibold d-inline-block bg-dark p-1 rounded">
-                    Hit
-                </h6>
-            );
-        return (
-            <h6 className="font-monospace fw-semibold text-warning d-inline-block bg-dark p-1 rounded">
-                Stood
-            </h6>
-        );
+        if (!player.hasVoted)
+            return (<h6 className="font-monospace text-secondary fw-semibold d-inline-block bg-dark p-1 rounded">Choosing</h6>);
+        if (player.wantsDouble)
+            return (<h6 className="font-monospace text-primary fw-semibold d-inline-block bg-dark p-1 rounded">Wants to continue</h6>);
+        return (<h6 className="font-monospace fw-semibold text-warning d-inline-block bg-dark p-1 rounded">Stood </h6>);
     };
 
-    const allPlayersVoted = () =>
-        players.length > 0 && players.every((p) => p.hasVoted);
+    const playersReady = () => numPlayers() == 2;
+
+    const numPlayers = () => players.filter(p => p.addr != ADDRESS_0).length
 
     const coinComponent = () => {
         if (coin == -1)
@@ -132,10 +110,6 @@ function CoinFlip() {
                                     {getPlayerStatus(player)}
                                 </div>
                                 <h3 className="font-primary fw-semibold">Your bet: {player.bet} ETH</h3>
-                                <div className="d-flex">
-                                    <button className="btn btn-primary fs-4 me-3" onClick={hitBet}>Continue playing</button>
-                                    <button className="btn btn-secondary fs-4" onClick={stand}>Stand</button>
-                                </div>
                             </div>
                         );
                     })}
@@ -166,7 +140,8 @@ function CoinFlip() {
                                 );
                             })()}
                         </div>
-                        <button className="btn btn-primary fs-4" onClick={resetUI}>Play again!</button>
+                        <button className="btn btn-primary fs-4 me-3" onClick={() => voteDouble(true)}>Continue playing</button>
+                        <button className="btn btn-secondary fs-4" onClick={() => voteDouble(false)}>Stand</button>
                     </div>
                 )}
             </div>
@@ -186,7 +161,7 @@ function CoinFlip() {
         </div>
     );
 
-    const votingComponent = () => (
+    const waitingComponent = () => (
         <>
             <div className="p-2 rounded-2 mb-3 container">
                 <div className="row">
@@ -198,17 +173,11 @@ function CoinFlip() {
                     <div className="fs-4 col">
                         Players ready:
                         <span className="text-warning ms-3 me-1">
-                            {players.filter((player) => player.hasVoted).length}
+                            {numPlayers()}
                         </span>
                         /
-                        <span className="text-primary px-1">
-                            {players.length}
-                        </span>
+                        <span className="text-primary px-1">2</span>
                     </div>
-                    <buttonn onClick={voteStart} disabled={vote || !(players.filter((p) => p.addr == account).length == 1)} 
-                        className="btn btn-outline-primary col-2">
-                        I'm ready
-                    </button>
                 </div>
             </div>
         </>
@@ -216,7 +185,7 @@ function CoinFlip() {
 
     const noJoinComponent = () => (
         <div className="border border-primary rounded p-5">
-            <h3>Sorry, the Dice game is already running</h3>
+            <h3>Sorry, the Coin game is already running</h3>
             <h5 className="fw-light">
                 This page will refresh and you will be able to join when it
                 finishes
@@ -239,7 +208,7 @@ function CoinFlip() {
 
     return (
         <div className="container-fluid">
-            <Navbar selectedLink="Krazy Dices" />
+            <Navbar selectedLink="Coin flip" />
             <div className="row pt-3 ps-3">
                 <main className="col">
                     <div className="d-flex justify-content-between">
@@ -258,8 +227,8 @@ function CoinFlip() {
                     ) : (
                         <div>
                             {/* Game screen, asks the user to place his bet and vote for the start, and then displays the game */}
-                            {votingComponent()}
-                            {allPlayersVoted() ? (
+                            {waitingComponent()}
+                            {playersReady() ? (
                                 gameStartedComponent()
                             ) : (
                                 <div>

@@ -23,7 +23,8 @@ contract CoinFlip {
 
     // Game variables
     GamePhase public phase = GamePhase.Ended; 
-    uint256 currentBet;
+    address public lastWinner = address(0);
+    uint256 public currentBet;
     struct Player {
         address addr;
         bool hasVoted;
@@ -126,6 +127,9 @@ contract CoinFlip {
         Structs.Payment[] memory winnings = new Structs.Payment[](2);
         if(players[player1].side == coin) {
             // p1 wins
+            lastWinner = player1;
+            players[player1].betResult = int256(currentBet);
+            players[player2].betResult = -int256(currentBet);
             winnings[0] = Structs.Payment({
                 addr: player1,
                 amount: int256(currentBet)
@@ -136,6 +140,9 @@ contract CoinFlip {
             });
         } else {
             // p2 wins
+            lastWinner = player2;
+            players[player1].betResult = -int256(currentBet);
+            players[player2].betResult = int256(currentBet);
             winnings[0] = Structs.Payment({
                 addr: player1,
                 amount: -int256(currentBet)
@@ -151,18 +158,23 @@ contract CoinFlip {
 
     function voteDouble(bool vote) external onlyPlayers inPlayingPhase {
         require(!players[msg.sender].hasVoted, "You have already voted for doubling the bet");
-        if(vote == false) {
+        if(!vote) {
             resetGame();
             return;
         }
         // Check in main contract if funds are enough
-        currentBet = currentBet * 2;
         uint256 userFunds = mainContract.getFunds(msg.sender);
-        require(currentBet <= userFunds, "You don't have enough funds to double the bet");
+        require(currentBet * 2 <= userFunds, "You don't have enough funds to double the bet");
         players[msg.sender].wantsDouble = vote;
         players[msg.sender].hasVoted = true;
         if(players[player1].wantsDouble && players[player2].wantsDouble) {
             // double the bet
+            currentBet = currentBet * 2;
+            // reset the voting variables
+            players[player1].hasVoted = false;
+            players[player2].hasVoted = false;
+            players[player1].wantsDouble = false;
+            players[player2].wantsDouble = false;
             startCoinflip();
         } else {
             emit GameStateChanged(getPlayersInternal(), phase);

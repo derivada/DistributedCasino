@@ -3,7 +3,7 @@
  * @param {int} coin ID of the coin, between 1 and 2
  */
 function getCoinLocation(coin) {
-    return "/images/coins/coin" + coin + ".svg";
+    return "/images/coins/coin" + (coin==0) ? 'tails': 'heads' + ".svg";
 }
 
 module.exports = { getCoinLocation };
