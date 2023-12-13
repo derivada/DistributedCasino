@@ -11,6 +11,10 @@ interface Main {
     function modifyFunds(Structs.Payment[] memory payments, bool zero_sum) external;
 }
 
+/*
+    Contract for the "Krazy Dices" game. This game consists on multiple players betting the same amount on each round (predefined on constructor)
+    and choosing whether to continue or to stand depending on their dice sum. The players with the biggest sum win the game.
+*/
 contract Dices {
     // The possible game phases
     enum GamePhase { Ended, Playing }
@@ -18,6 +22,7 @@ contract Dices {
     // Constants, set in constructor
     address public owner;
     uint256 public roundBet;
+    uint8 public minPlayers;
     uint8 public maxPlayers;
     uint8 public numberOfRounds; // Total amount of rounds
     address public mainContractAddr;
@@ -45,7 +50,7 @@ contract Dices {
     mapping(address => Player) players;
     address[] playerAddresses;
 
-    // Fired on state changes in the game, sends the information
+    // Fired on state changes in the game, sends the public information of the game
     event GameStateChanged(Player[] players, GamePhase phase);
 
     // Modifiers for access to functions
@@ -69,16 +74,16 @@ contract Dices {
         _;
     }
 
-    constructor(uint8 _numberOfRounds, uint256 _roundBet, uint8 _maxPlayers, address _main_contract_addr) {
+    constructor(uint8 _numberOfRounds, uint256 _roundBet, uint8 _minPlayers, uint8 _maxPlayers, address _main_contract_addr) {
         owner = msg.sender;
         numberOfRounds = _numberOfRounds;
         roundBet = _roundBet;
+        minPlayers = _minPlayers;
         maxPlayers = _maxPlayers;
         mainContractAddr = _main_contract_addr;
         mainContract = Main(_main_contract_addr);
     }
 
-    // Get player information, only available at betting phase to not reveal dealer cards
     function getPlayers() external view returns (Player[] memory) {
         return getPlayersInternal();
     } 
@@ -87,7 +92,7 @@ contract Dices {
         Player[] memory allPlayers = new Player[](playerAddresses.length);
         for(uint256 i = 0; i < playerAddresses.length; i++ ) {
             allPlayers[i] = players[playerAddresses[i]];
-            allPlayers[i].addr = playerAddresses[i]; // also add the address of the player to the emitted object
+            allPlayers[i].addr = playerAddresses[i]; // Also add the address of the player to the emitted object
 
             // Remove the dices and total of players if the game is running, to avoid knowing what the others have
             if(phase == GamePhase.Playing) {
@@ -98,7 +103,7 @@ contract Dices {
         return allPlayers;
     }
     
-    // Other useful getter functions
+    // Other useful getter functions for the players
     function getDices() inPlayingPhase onlyPlayers external view returns (uint8[] memory) {
         return players[msg.sender].dices;
     }
@@ -107,9 +112,13 @@ contract Dices {
         return players[msg.sender].playerTotal;
     }
 
+    /*
+        Joins a game, betting the first round amount
+    */
     function joinGame() external notInPlayingPhase {
         require(playerAddresses.length <= maxPlayers, "The maximum number of players was reached");
-
+        require(players[msg.sender].bet == 0, "The player has already entered the game");
+        
         // Check in main contract if funds are enough
         uint256 userFunds = mainContract.getFunds(msg.sender);
         require(roundBet * numberOfRounds <= userFunds, "You don't have enough funds to join");
@@ -119,9 +128,12 @@ contract Dices {
         emit GameStateChanged(getPlayersInternal(), phase);
     }
 
-    // Users vote for the start of the game, when all users all ready, state switches and first dices are given
+    /*
+     Users vote for the start of the game, when all users all ready, state switches and first dices are given
+    */
     function voteStart() external onlyPlayers notInPlayingPhase {
         // Check if player is registered for the game and has not voted
+        require(playerAddresses.length >= minPlayers, "The number of minimum players hasn't been reached yet");
         require(!players[msg.sender].hasVoted, "User has already voted for the start of the game");
         players[msg.sender].hasVoted = true;
         
@@ -140,7 +152,10 @@ contract Dices {
         }
     }
     
-    // User bets for the round, adding the round bet to his total.
+    /*
+        User bets for the round, adding the round bet to his total and allowing them to get a new dice. 
+        This is called Hit in the frontend.
+    */
     function bet() external inPlayingPhase onlyPlayers {
         // Check if user has not stood or already played this round
         require(!players[msg.sender].hasStood, "You have already stood this game");
@@ -160,7 +175,9 @@ contract Dices {
             emit GameStateChanged(getPlayersInternal(), phase);
     }
 
-    // A user stands the game, they lose the money betted in previous rounds
+    /*
+        A user stands the game, they won't have to bet more money but will not receive more dices.
+    */
     function stand() external inPlayingPhase onlyPlayers {
         require(players[msg.sender].hasStood == false, "You have already stood this game");
         require(players[msg.sender].hasPlayed == false, "You can't stand in this round after having bet");
@@ -169,13 +186,13 @@ contract Dices {
         players[msg.sender].hasStood = true;
         playedCount++;
 
-        if (playerAddresses.length == playedCount) // If only one player left, end the game
-            endGame();
+        if (playerAddresses.length == playedCount)
+            giveDices();
         else
             emit GameStateChanged(getPlayersInternal(), phase);
     }
 
-    // Dices are given to the players randomly
+    // Gives dices to players randomly
     function giveDices() internal {
         for (uint256 i = 0; i < playerAddresses.length; i++) {
             address player_addr = playerAddresses[i];
@@ -247,6 +264,7 @@ contract Dices {
         resetGame();
     }
 
+    // Resets the state of the game
     function resetGame() internal {
         // Delete players from previous game
         for (uint256 i = 0; i < playerAddresses.length; i++) {

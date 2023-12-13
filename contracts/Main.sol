@@ -3,6 +3,10 @@ pragma solidity 0.8.19;
 
 import "./Structs.sol";
 
+/*
+    Main contract for handling user founds and transfering money between them from their game results.
+    The Game contracts that can call modifyFunds() are registered during the deployment phase, by the owner.
+*/
 contract Main {
     
     struct Users {
@@ -45,10 +49,12 @@ contract Main {
         gameContracts[game_contract] = false;
     }
 
+    // Registers the user as part of the casino
     function registerUser(address _user) internal {
         userList.push(_user);
         userFunds[_user].exists = true;
     }
+    
     // Adds funds to the user account
     function addFunds() external payable {
         if(!userFunds[msg.sender].exists)
@@ -68,15 +74,16 @@ contract Main {
         return userFunds[user].funds;
     }
 
+    // Gets the total casino funds
     function getCasinoFunds() external view returns (uint256) {
         return address(this).balance;
     }
     
     /**
      * Receives an array of Payment[] objects representing the payouts from the result of a game
-     * ensures that:
-     * 1. the sum of the amounts is 0, that is, no money enters or leaves the system here (fair betting)
-     * 2. all users exist and have enough money in case they are losing money here
+     * If zero_sum is set to true, also ensures that the payouts equal zero, in order to not remove any money from the casino.
+     * If zero_sum is set to false and the casino can lose money in the round, game contracts must previously ensure that the 
+     * maximum amount to lose is smaller than the total casino funds. 
      */
     function modifyFunds(Structs.Payment[] memory payments, bool zero_sum) external onlyGameContracts {
         int256 result = 0;

@@ -9,7 +9,7 @@ import FundsControl from '../Components/FundsControl';
 
 
 const games = [
-    {
+    /*{
         name: "Daily Pot",
         desc: "A daily pot",
         imageSrc: "/images/dailypot.png",
@@ -32,19 +32,19 @@ const games = [
         desc: "Put all your family's saving to stake",
         imageSrc: "/images/nftstake.png",
         linkUrl: "",
-    },
-    {
-        name: "Blackjack",
-        desc: "Get rich quick scheme moments",
-        imageSrc: "/images/blackjack.png",
-        linkUrl: "/blackjack"
-    },
+    },*/
     {
         name: "Krazy Dices",
         desc: "Give your mortgage a nice roll",
         imageSrc: "/images/crazy.jpeg",
         linkUrl: "/dices"
     },
+    {
+        name: "Blackjack",
+        desc: "Get rich quick scheme moments",
+        imageSrc: "/images/blackjack.png",
+        linkUrl: "/blackjack"
+    }
 ];
 
 

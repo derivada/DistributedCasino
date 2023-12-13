@@ -11,7 +11,6 @@ function GameCard({ name, imageSrc, desc, linkUrl }) {
                 src={imageSrc}
                 className="card-img-top"
                 alt="..."
-                height="100px"
             ></img>
             <div className="card-body">
                 <h5 className="card-title fw-semibold">{name}</h5>

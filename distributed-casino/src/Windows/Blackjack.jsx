@@ -6,7 +6,6 @@ import "../Styles/Home.css";
 import "../Styles/custom.css";
 import Navbar from '../Components/Navbar';
 import FundsControl from '../Components/FundsControl';
-
 import blackContractService from "../Contracts/BlackContractService";
 
 import { getCardLocation, getCardName } from "../cards";
@@ -242,12 +241,8 @@ function Blackjack() {
     return (
         <div className="container-fluid">
             <Navbar selectedLink="Home" />
-            <div className="row pt-3">
-                <aside className="col-2 d-flex flex-column">
-                    <h2 className="fw-light">Room activity</h2>
-                    <div className="border border-secondary rounded flex-grow-1 m-2 p-1"></div>
-                </aside>
-                <main className="col-7">
+            <div className="row pt-3 ps-3">
+                <main className="col">
                     <div className="d-flex justify-content-between">
                         <h1 className="fw-bold">
                             Blackjack

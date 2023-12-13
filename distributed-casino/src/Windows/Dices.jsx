@@ -15,50 +15,59 @@ function Dices() {
     // React variables
     const [account, setAccount] = useStore("account"); // The account of the players, stored as global state
 
+    const [dices, setDices] = useState([])
     const [gamePhase, setGamePhase] = useState("Betting"); // The state of the game
     const [maxPlayers, setMaxPlayers] = useState(0); // The maximum amount of players in this room
+    const [minPlayers, setMinPlayers] = useState(2)
     const [wantsToJoin, setWantsToJoin] = useState(false); // If the user wants to join the game or not
-    const [bet, setBet] = useState(0); // The bet of the player
     const [roundBet, setRoundBet] = useState(0); // The bet per round in the room
     const [vote, setVote] = useState(false); // If the user has voted for the start or not
     const [gameEnded, setGameEnded] = useState(false); // If the game has ended
     const [players, setPlayers] = useState([]); // The structure of the users, reflects the blockchain status
-    const [dices, setDices] = useState([])
 
     /* Event listener for contract events */
-    const gameStateChanged = ({ players, phase }) => {
-        if (phase === "Ended" && players.length > 1) {
+    const gameStateChanged = ({ playersIn, phase }) => {
+        if (phase == "Ended" && allPlayersVoted()) {
+            playersIn.filter()
             setGameEnded(true);
         }
-        console.log("Game state changed");
-        setPlayers(players);
-        setGamePhase(phase);
-        diceContractService.getDices().then(obj => {
-            console.log(obj)
-            setDices(obj)
-        })
+        // First set the phase of the game to the received one
+        setGamePhase(phase); 
+        if(phase == 'Playing'){
+            // Get your dices from contract after receiving the event
+            diceContractService.getDices().then(setDices)
+        } else {
+            // The event will give all the dices that a player could have
+            setPlayers(playersIn)
+        }
     };
 
     const getRoomVariables = () => {
-        diceContractService.getGamePhase().then(setGamePhase); // Get the current phase of the game
         diceContractService.getMaxPlayers().then(setMaxPlayers); // Get the maximum amount of players of the game
         diceContractService.getRoundBet().then(setRoundBet); // Get the round bet of the game
+        
+        // Get the list of players
         diceContractService.getPlayers().then((p) => {
             setPlayers(p)
+            diceContractService.getGamePhase().then(phase => {
+                setGamePhase(phase) // Set the phase of the game
+                if(phase == 'Playing') // Also get the dices for the player if the phase is Playing
+                    diceContractService.getDices().then(setDices)
+            });
         });
     };
 
-    // To be done in account change
+    // To be done in account change.
     useEffect(() => {
         // TODO maybe should reload the page as all data is based on account
         diceContractService.setupAccount(account);
+        getRoomVariables(); // Get the basic information of the room
     }, [account]);
 
     // To be done in page reload
     useEffect(() => {
         diceContractService.setupContract().then(() => {
             diceContractService.addGameStateListener(gameStateChanged);
-            getRoomVariables(); // Get the basic information of the room
         });
     }, []);
 
@@ -76,6 +85,7 @@ function Dices() {
             setWantsToJoin(true);
             setGameEnded(false);
         });
+        getRoomVariables()
     };
 
     const voteStart = () => {
@@ -86,7 +96,6 @@ function Dices() {
     const resetUI = () => {
         // Destroys all room variables and sends user to the join a game screen
         setWantsToJoin(false);
-        setBet(0);
         setVote(false);
         setGameEnded(false);
         setPlayers([]);
@@ -104,14 +113,20 @@ function Dices() {
 
     // Helper function for retrieving a styled string with the status of a player based on his obj. attributes
     const getPlayerStatus = (player) => {
-        if (!player.hasStood)
+        if (!player.hasPlayed)
             return (
                 <h6 className="font-monospace text-secondary fw-semibold d-inline-block bg-dark p-1 rounded">
-                    Playing
+                    Choosing
+                </h6>
+            );
+        else if (!player.hasStood)
+            return (
+                <h6 className="font-monospace text-primary fw-semibold d-inline-block bg-dark p-1 rounded">
+                    Hit
                 </h6>
             );
         return (
-            <h6 className="font-monospace fw-semibold text-primary d-inline-block bg-dark p-1 rounded">
+            <h6 className="font-monospace fw-semibold text-warning d-inline-block bg-dark p-1 rounded">
                 Stood
             </h6>
         );
@@ -129,7 +144,7 @@ function Dices() {
                         </h3>
                         <div className="mb-2">
                             {(() => {
-                                let player =players.find((obj) => obj.addr === account);
+                                let player = players.find((obj) => obj.addr === account);
                                 let result = player && player.betResult ? player.betResult : 0;
                                 return (
                                     <div>{result > 0 ? (
@@ -166,7 +181,7 @@ function Dices() {
                                     <img key={account + "-" + index} src={getDiceLocation(dice)} className="mx-1 rounded" height={100}></img>
                                 ))}
                             </div>
-                            <div className="d-flex">
+                            <div className="d-flex">          
                                 <button className="btn btn-primary fs-4 me-3" onClick={hitBet}>
                                     Hit
                                 </button>
@@ -183,6 +198,9 @@ function Dices() {
                         <div className="d-flex align-items-center">
                             <h5 className="me-2">{player.addr.substring(0,6)}...</h5>
                             {getPlayerStatus(player)}
+                            <div className="mb-3">
+
+                            </div>
                         </div>
                         <p className="font-primary fw-semibold">{player.bet} ETH</p>
                     </div>
@@ -195,11 +213,7 @@ function Dices() {
         <>
             <div className="p-2 rounded-2 mb-3 container">
                 <div className="row">
-                    <label className="fw-light fs-4 me-2 col-auto">
-                        Place a bet
-                    </label>
-                    <input value={bet} onChange={(e) => {setBet(e.target.value)}} type="text" className="form-control me-2 col"/>
-                    <button onClick={joinGame} disabled={!bet} className="btn btn-outline-primary col-2">
+                    <button onClick={joinGame} className="btn btn-outline-primary col-2">
                         Enter round
                     </button>
                 </div>
@@ -216,7 +230,7 @@ function Dices() {
                             {players.length}
                         </span>
                     </div>
-                    <button onClick={voteStart} disabled={!vote && !bet} className="btn btn-outline-primary col-2">
+                    <button onClick={voteStart} disabled={vote || !(players.filter((p) => p.addr == account).length == 1)} className="btn btn-outline-primary col-2">
                         I'm ready
                     </button>
                 </div>
@@ -238,7 +252,9 @@ function Dices() {
     )
 
     const gameStartedComponent = () => {
-        if(players.filter(aux => aux.addr == account).length == 1)
+        if(players.filter(aux => {
+            return aux.addr == account
+        }).length == 1)
             return playComponent()
         return noJoinComponent()
     }
@@ -257,12 +273,8 @@ function Dices() {
     return (
         <div className="container-fluid">
             <Navbar selectedLink="Home" />
-            <div className="row pt-3">
-                <aside className="col-2 d-flex flex-column">
-                    <h2 className="fw-light">Room activity</h2>
-                    <div className="border border-secondary rounded flex-grow-1 m-2 p-1"></div>
-                </aside>
-                <main className="col-7">
+            <div className="row pt-3 ps-3">
+                <main className="col">
                     <div className="d-flex justify-content-between">
                         <h1 className="fw-bold">Krazy Dices!!!</h1>
                         <div className="text-end">

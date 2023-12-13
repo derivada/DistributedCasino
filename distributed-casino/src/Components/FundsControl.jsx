@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from 'react-context-hook'
 
 import FundsDisplay from "./FundsDisplay";
-import Leaderboards from "./Leaderboards";
 import mainContractService from "../Contracts/MainContractService";
 
 function FundsControl ({update}) {

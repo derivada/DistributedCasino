@@ -1,16 +1,26 @@
+import React from 'react';
+
+import { useStore } from "react-context-hook";
+
+
 import Web3 from "web3";
 import DicesContractArtifact from "./Dices.json"; // Replace with your contract's JSON file
+
+
 
 const callbacks = {
     GameStateChanged: () => {
         return;
     },
 };
+
+
+
 const diceContractService = {
     web3: null,
     diceContract: null,
     account: null,
-    minimumBet: 0,
+    roundBet: 0,
     events: {},
     listenersDone: false,
     phase: "Ended",
@@ -35,8 +45,8 @@ const diceContractService = {
             console.error("Contract not deployed to detected network.");
         }
         try {
-            let minBetWei = await this.diceContract.methods.minimumBet().call();
-            this.minimumBet = Web3.utils.fromWei(minBetWei, "ether");
+            let roundBetWei = await this.diceContract.methods.roundBet().call();
+            this.roundBet = Web3.utils.fromWei(roundBetWei, "ether");
         } catch (error) {
             console.log(error);
         }
@@ -57,8 +67,10 @@ const diceContractService = {
                     hasVoted: player.hasVoted,
                     hasPlayed: player.hasPlayed,
                     hasStood: player.hasStood,
+                    dices: player.dices,
+                    playerTotal: player.playerTotal,
                 }));
-                callbacks.GameStateChanged({ players, phase: this.phase });
+                callbacks.GameStateChanged({ playersIn: players, phase: this.phase });
             });
         }
     },
@@ -78,6 +90,8 @@ const diceContractService = {
 
 
     async getPlayers() {
+        if (!this.diceContract)
+            return
         return await this.diceContract.methods.getPlayers().call().then((players) => {
             return players.map((player) => {
                 return {
@@ -85,7 +99,6 @@ const diceContractService = {
                     bet: Web3.utils.fromWei(player.bet, "ether"),
                     hasVoted: player.hasVoted,
                     isDealer: player.isDealer,
-                    playerTotal: Number(player.playerTotal),  // Note: You need to define what playerTotal is
                     hasStood: player.hasStood,
                     hasPlayed: player.hasPlayed,
                 }
@@ -93,14 +106,19 @@ const diceContractService = {
         });
     },
     async getDices() {
+        if (!this.diceContract) return;
         try {
+            console.log('getting')
             if (this.phase == "Playing") {
-                return await this.diceContract.methods.getDices().call({from: this.account});
+                let dices =  await this.diceContract.methods.getDices().call({from: this.account});
+                dices = dices.map(dice => Number(dice))
+                return dices
+            } else {
+                return []
             }
         } catch (error) {
-            console.log(error)
+            console.log("Error when getting dices: " + error)
         }
-        return []
     },
     async getContractOwner() {
         return await this.diceContract.methods.owner().call();
@@ -109,10 +127,12 @@ const diceContractService = {
         return await this.diceContract.methods.mainContractAddr().call();
     },
     async getRoundBet() {
-        let minBet = await this.diceContract.methods.roundBet().call();
-        return Web3.utils.fromWei(minBet, "ether");
+        if (!this.diceContract) return;
+        let roundBet = await this.diceContract.methods.roundBet().call();
+        return Web3.utils.fromWei(roundBet, "ether");
     },
     async getGamePhase() {
+        if (!this.diceContract) return;
         let phaseN = await this.diceContract.methods.phase().call();
         return this.getGamePhaseString(Number(phaseN));
     },
@@ -121,6 +141,7 @@ const diceContractService = {
         return Web3.utils.fromWei(total, "ether");
     },
     async getMaxPlayers() {
+        if (!this.diceContract) return;
         let players = await this.diceContract.methods.maxPlayers().call();
         return Number(players);
     },

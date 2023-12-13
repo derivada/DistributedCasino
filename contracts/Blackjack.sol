@@ -3,29 +3,33 @@ pragma solidity 0.8.19;
 
 import "./Structs.sol";
 
-// Main contract interface
+// Main contract interface with the necessary functions
 interface Main {
-    // The neccesary functions from the Main contract
     function getFunds(address user) external view returns (uint256);
     function getCasinoFunds() external view returns (uint256);
     function modifyFunds(Structs.Payment[] memory payments, bool zero_sum) external;
 }
 
+/*
+    A contract for the popular game Blackjack. It is registered as one of the Game contracts and allows a number of players to play
+    independently of each other at the same time.
+*/
 contract Blackjack {
     // Possible game phases
     enum GamePhase { Ended, Betting, Playing }
 
-    // Public variables
+    // Constants, set in constructor
     address public owner;
     address public mainContractAddr;
     uint256 public minimumBet;
+
+    // Game variables
+    GamePhase public phase = GamePhase.Ended;
     uint8 public maxPlayers;
     uint256 public totalBets; // The sum of bets across all players
-    GamePhase public phase = GamePhase.Ended;
 
     // Player info. structure
     struct Player {
-        // Basic player data
         address addr;
         uint256 bet;
         bool hasVoted;
@@ -96,7 +100,7 @@ contract Blackjack {
         return allPlayers;
     }
 
-     // Some other useful getters
+    // Some other useful getters for a player to get its extra info without events
     function getCards() external view onlyPlayers inPlayingPhase returns (uint8[] memory) {
         require(players[msg.sender].playerCards.length > 0, "Player cards not initialized");
         // Gets the current player cards
@@ -115,6 +119,9 @@ contract Blackjack {
         return players[address(0)].playerCards[0];
     }
 
+    /*
+        Join the game room, adding your bet.
+    */
     function joinGame(uint256 bet) external notInPlayingPhase {
         require(playerAddresses.length - 1 <= maxPlayers, "The maximum number of players was reached");
         
@@ -137,7 +144,9 @@ contract Blackjack {
         phase = GamePhase.Betting;
         emit GameStateChanged(getPlayersInternal(), phase);
     }
-
+    /*
+        Vote for the start of the game after joining it.
+    */
     function voteStart() external onlyPlayers notInPlayingPhase {
         // Check if player is registered for the game and has not voted
         require(!players[msg.sender].hasVoted, "User has already voted for the start of the game");
@@ -157,6 +166,7 @@ contract Blackjack {
             emit GameStateChanged(getPlayersInternal(), phase);
     }
     
+    // Starts the game, deals cards to players
     function startGame() internal {
         // Require there is at least one non-dealer user in the game
         require(playerAddresses.length > 1, "No players have placed bets");
@@ -173,13 +183,15 @@ contract Blackjack {
         phase = GamePhase.Playing;
     }
 
+    // Deals a card to a player
     function dealCard(address _player) internal {
-        // Player receives a card
+        // Randomly generated card from block timestamp and other unpredictable information
         uint8 card = uint8(uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, _player, players[_player].playerCards.length))) % 52) + 1;
         players[_player].playerCards.push(card);
         calculatePlayerTotal(_player);
     }
 
+    // Calculates the total of a player
     function calculatePlayerTotal(address _player) internal {
         uint8 total = 0;
         uint8 numAces = 0;
@@ -187,7 +199,6 @@ contract Blackjack {
         // Count nominal value
         for (uint256 i = 0; i < players[_player].playerCards.length; i++) {
             uint8 cardValue = (players[_player].playerCards[i] % 13);
-
             if (cardValue == 1) {
                 // Ace
                 numAces++;
@@ -221,7 +232,9 @@ contract Blackjack {
         }
     }
 
-    // User turn actions
+    /* 
+        Get a new card
+    */
     function hit() external onlyPlayers inPlayingPhase {
         // Ensure the player has not stood or busted
         require(!players[msg.sender].hasStood, "You have already stood or busted.");
@@ -230,6 +243,9 @@ contract Blackjack {
         dealCard(msg.sender);
     }
 
+    /*
+        Stand from the table
+    */
     function stand() external onlyPlayers inPlayingPhase {
         // Ensure the player has not stood or busted
         require(!players[msg.sender].hasStood, "You have already stood or busted.");
@@ -239,6 +255,8 @@ contract Blackjack {
         endPlayerTurn();
     }
     
+
+    // Called when the game is finished for the players, deals the cards to the dealer and then determines the winner
     function endPlayerTurn() internal {
         // Check if all players have stood or busted
         bool allPlayersDone = true;
@@ -317,6 +335,7 @@ contract Blackjack {
         }
     }
 
+    // Resets the game state
     function resetGame() internal {
         // Delete players from previous game
         for (uint256 i = 0; i < playerAddresses.length; i++) {

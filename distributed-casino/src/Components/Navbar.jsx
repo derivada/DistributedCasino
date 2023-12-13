@@ -8,8 +8,9 @@ import { Link } from "react-router-dom";
 import "../Styles/custom.css";
 
 const links = [
-    { name: 'Home', path: '/home' },
-    { name: 'Donate', path: '/donate' },
+    { name: 'Home', path: '/' },
+    { name: 'Krazy Dices', path: '/dices' },
+    { name: 'Blackjack', path: '/blackjack' },
     { name: 'Statement', path: '/statement'},
 ];
 

@@ -17,13 +17,14 @@ contract('Dices', (accounts) => {
     let players = [player1, player2];
     const numberOfRounds = 3;
     const roundBet = 10;
+    const minPlayers = 2;
     const maxPlayers = 8;
     before(async () => {
         // Deploy Main contract
         mainInstance = await MainContract.new({ from: deployer });
 
         // Deploy Game contract, pass parameters and addr of Main Contract
-        dicesInstance = await DicesContract.new(numberOfRounds, roundBet, maxPlayers, mainInstance.address, { from: deployer });
+        dicesInstance = await DicesContract.new(numberOfRounds, roundBet, minPlayers, maxPlayers, mainInstance.address, { from: deployer });
 
         // Add blackjack contract to game contract list on main
         await mainInstance.addGameContract(dicesInstance.address, { from: deployer });
