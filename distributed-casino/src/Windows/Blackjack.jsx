@@ -240,7 +240,7 @@ function Blackjack() {
 
     return (
         <div className="container-fluid">
-            <Navbar selectedLink="Home" />
+            <Navbar selectedLink="Blackjack"/>
             <div className="row pt-3 ps-3">
                 <main className="col">
                     <div className="d-flex justify-content-between">

@@ -41,9 +41,15 @@ const games = [
     },
     {
         name: "Blackjack",
-        desc: "Get rich quick scheme moments",
-        imageSrc: "/images/blackjack.png",
+        desc: "Hit or stand, say goodbye to the college fund! 🎲💸",
+        imageSrc: "/images/blackjack.jpg",
         linkUrl: "/blackjack"
+    },
+    {
+        name: "Exponential Coin flip",
+        desc: "Go big or go home",
+        imageSrc: "/images/coinflip.gif",
+        linkUrl: "/coinflip"
     }
 ];
 

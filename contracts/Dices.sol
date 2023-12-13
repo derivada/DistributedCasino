@@ -44,6 +44,7 @@ contract Dices {
         uint256 bet;
         bool hasPlayed;
         bool hasStood;
+        int256 betResult;
     }
 
     // Global mapping and list of players
@@ -225,6 +226,7 @@ contract Dices {
         uint256[] memory winners = new uint256[](playerAddresses.length);
         uint256 winnersCount;
         uint256 winnersPot;
+        int256 betResult;
         Structs.Payment[] memory winnings = new Structs.Payment[](playerAddresses.length);
         
         for(uint256 i = 0; i < playerAddresses.length; i++) {
@@ -233,24 +235,30 @@ contract Dices {
                 winnersCount++;
             } else {
                 winnersPot += players[playerAddresses[i]].bet;
+                betResult = -int256(players[playerAddresses[i]].bet);
                 winnings[i] = Structs.Payment({
                     addr: playerAddresses[i],
-                    amount: - int256(players[playerAddresses[i]].bet)
+                    amount: betResult
                 });
+                players[playerAddresses[i]].betResult = betResult;
             }
         }
 
         uint256 winAmount = winnersPot / winnersCount;
         uint256 rem = winnersPot % winnersCount; // should be a negligible amount of wei, just for 0-sum
+        betResult = int256(winAmount + rem);
         winnings[winners[0]] = Structs.Payment({
                 addr: playerAddresses[winners[0]],
-                amount: int256(winAmount + rem)
+                amount: betResult
         });
+        players[playerAddresses[winners[0]]].betResult = betResult;
         for(uint256 i = 1; i < winnersCount; i++) {
+            betResult = int256(winAmount);
             winnings[winners[i]] = Structs.Payment({
                 addr: playerAddresses[winners[i]],
-                amount: int256(winAmount)
+                amount: betResult
             });
+            players[playerAddresses[winners[0]]].betResult = betResult;
         }
         
         // Pay out users

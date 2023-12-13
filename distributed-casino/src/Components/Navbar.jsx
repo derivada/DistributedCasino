@@ -11,7 +11,7 @@ const links = [
     { name: 'Home', path: '/' },
     { name: 'Krazy Dices', path: '/dices' },
     { name: 'Blackjack', path: '/blackjack' },
-    { name: 'Statement', path: '/statement'},
+    { name: 'Coinflip', path: '/coinflip'},
 ];
 
 

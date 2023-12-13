@@ -64,6 +64,7 @@ const diceContractService = {
                     hasStood: player.hasStood,
                     dices: player.dices,
                     playerTotal: player.playerTotal,
+                    betResult: Web3.utils.fromWei(player.betResult ?? 0, "ether"),
                 }));
                 callbacks.GameStateChanged({ playersIn: players, phase: this.phase });
             });
@@ -96,6 +97,7 @@ const diceContractService = {
                     isDealer: player.isDealer,
                     hasStood: player.hasStood,
                     hasPlayed: player.hasPlayed,
+                    betResult: Web3.utils.fromWei(player.betResult ?? 0, "ether")
                 }
             })
         });

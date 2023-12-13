@@ -5,6 +5,7 @@ import { withStore } from 'react-context-hook'
 import Home from "./Windows/Home";
 import Blackjack from "./Windows/Blackjack";
 import Dices from "./Windows/Dices";
+import CoinFlip from "./Windows/CoinFlip";
 import ErrorPage from "./Windows/404";
 
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
@@ -29,6 +30,10 @@ const router = createBrowserRouter([
         path: "/statement",
         element: <Statement />,
     },
+    {
+        path: "/coinflip",
+        element: <CoinFlip />,
+    }
 ]);
 
 function App() {

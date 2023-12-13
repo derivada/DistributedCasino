@@ -1,6 +1,6 @@
 /**
- * Returns the location of the card image
- * @param {int} dice ID of the card, between 1 and 52
+ * Returns the location of the dice image
+ * @param {int} dice ID of the dice, between 1 and 6
  */
 function getDiceLocation(dice) {
     return "/images/dices/dice" + dice + ".svg";
