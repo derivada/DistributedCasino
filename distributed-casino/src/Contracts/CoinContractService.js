@@ -53,7 +53,7 @@ const coinContractService = {
                     addr: player.addr,
                     hasVoted: player.hasVoted,
                     wantsDouble: player.wantsDouble,
-                    side: player.side,
+                    side: player.side == 1,
                     betResult: Web3.utils.fromWei(player.betResult ?? 0, "ether"),
                 }));
                 callbacks.GameStateChanged({ playersIn: players, phase: this.phase });
@@ -76,16 +76,36 @@ const coinContractService = {
 
     async getPlayers() {
         if (!this.coinContract) return
-        return await this.coinContract.methods.getPlayers().call()
+        return this.coinContract.methods.getPlayers().call().then((players) => {
+            return players.map((player) => {
+                return {
+                    addr: player.addr,
+                    hasVoted: player.hasVoted,
+                    wantsDouble: player.wantsDouble,
+                    side: player.side == 1,
+                    betResult: Web3.utils.fromWei(player.betResult ?? 0, "ether"),
+                }
+            })
+        })
     },
 
     async getCoin() {
         if (!this.coinContract) return;
-        this.coinContract.methods.lastWinner().call().then((winner) => {
-            this.coinContract.methods.getPlayers().call().then((players) => {
-                return players.filter((aux) => aux.addr == winner).side;
-            })
+        return this.coinContract.methods.lastCoin().call().then((coin) => {
+            return coin==1
         });
+    },
+
+    async getCurrentBet() {
+        if (!this.coinContract) return;
+        let currentBet = await this.coinContract.methods.currentBet().call();
+        return Web3.utils.fromWei(currentBet, "ether");
+    },
+
+    async getGamePhase() {
+        if (!this.coinContract) return;
+        let phase = await this.coinContract.methods.phase().call();
+        return this.getGamePhaseString(Number(phase))
     },
 
     // Room actions
@@ -103,7 +123,7 @@ const coinContractService = {
     async voteDouble(vote) {
         if (!this.coinContract) return null;
         try {
-            await this.coinContract.methods.stand(vote).send({ from: this.account });
+            await this.coinContract.methods.voteDouble(vote).send({ from: this.account });
         } catch (error) {
             if (error.data) console.log(error.data.message);
         }

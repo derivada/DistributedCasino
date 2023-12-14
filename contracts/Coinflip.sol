@@ -11,6 +11,10 @@ interface Main {
     function modifyFunds(Structs.Payment[] memory payments, bool zero_sum) external;
 }
 
+/*
+    Contract for the "Coinflip" game. This game consists on 2 players having a coinflip and then deciding on whether to continue doubling
+    the bet or not. 
+*/
 contract CoinFlip {
     enum GamePhase { Ended, Playing }
     enum Coin { Tails, Heads }
@@ -23,7 +27,7 @@ contract CoinFlip {
 
     // Game variables
     GamePhase public phase = GamePhase.Ended; 
-    address public lastWinner = address(0);
+    Coin public lastCoin = Coin.Heads;
     uint256 public currentBet;
     struct Player {
         address addr;
@@ -84,7 +88,9 @@ contract CoinFlip {
         return allPlayers;
     }
 
-
+    /*
+        Join the game, ensures player is not already registered and we don't have 2 players already playing
+    */
     function joinGame() external notInPlayingPhase {
         require(address(0) == player1 || address(0) == player2, "The maximum number of players was reached");
         require(msg.sender != player1 && msg.sender != player2, "The player has already entered the game");
@@ -101,7 +107,9 @@ contract CoinFlip {
         emit GameStateChanged(getPlayersInternal(), phase);
     }
 
-    // if heads is true, get heads, otherwise get tails
+    /*
+        Choose the side of the coin, the boolean variable indicates whether you get heads or not
+    */
     function chooseSide(bool heads) external onlyPlayers notInPlayingPhase {
         // Check if player is registered for the game and has not voted
         require(player1 != address(0) && player2 != address(0), "There are not 2 players in the game yet");
@@ -117,17 +125,17 @@ contract CoinFlip {
             startCoinflip();
             players[player1].hasVoted = false; // will be reused for double votes
             players[player2].hasVoted = false; 
-        } else { 
-            emit GameStateChanged(getPlayersInternal(), phase);
         }
+        emit GameStateChanged(getPlayersInternal(), phase);
     }
     
+    // Random Coinflip and Main Contract call for payouts 
     function startCoinflip() internal {
         Coin coin = uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, msg.sender))) % 2 == 0 ? Coin.Tails : Coin.Heads;
+        lastCoin = coin;
         Structs.Payment[] memory winnings = new Structs.Payment[](2);
         if(players[player1].side == coin) {
             // p1 wins
-            lastWinner = player1;
             players[player1].betResult = int256(currentBet);
             players[player2].betResult = -int256(currentBet);
             winnings[0] = Structs.Payment({
@@ -140,7 +148,6 @@ contract CoinFlip {
             });
         } else {
             // p2 wins
-            lastWinner = player2;
             players[player1].betResult = -int256(currentBet);
             players[player2].betResult = int256(currentBet);
             winnings[0] = Structs.Payment({
@@ -154,8 +161,13 @@ contract CoinFlip {
         }
         mainContract.modifyFunds(winnings, true);
         phase = GamePhase.Playing; // playing is basically asking for doubling phase
+        emit GameStateChanged(getPlayersInternal(), phase);
     }
 
+    /*
+        Let's a user vote whether to double the bet or not, if one user votes no, then the game is ended. 
+        If both users vote yes, the currentFund variable is doubled and another coinflip is performed.
+    */
     function voteDouble(bool vote) external onlyPlayers inPlayingPhase {
         require(!players[msg.sender].hasVoted, "You have already voted for doubling the bet");
         if(!vote) {
@@ -181,6 +193,7 @@ contract CoinFlip {
         }
     }
 
+    // Resets the game to the initial state
     function resetGame() internal {
         delete players[player1];
         delete players[player2];

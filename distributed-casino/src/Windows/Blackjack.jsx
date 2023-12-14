@@ -125,7 +125,7 @@ function Blackjack() {
                         </div>
                         <div>
                             {player.playerCards.map((card) => (
-                                <img src={getCardLocation(card)} className="mx-1 rounded" height={100}></img>
+                                <img src={getCardLocation(card)} className="m-1 rounded" height={130}></img>
                             ))}
                         </div>
                     </div>
@@ -183,8 +183,8 @@ function Blackjack() {
                             {player.playerCards.map((card) => (
                                 <img
                                     src={getCardLocation(card)}
-                                    className="mx-1 rounded"
-                                    height={40}
+                                    className="m-1 rounded"
+                                    height={80}
                                 ></img>
                             ))}
                         </div>

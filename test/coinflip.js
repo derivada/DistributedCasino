@@ -9,7 +9,7 @@ const truffleAssert = require('truffle-assertions');
 const {getCardName} = require('../distributed-casino/src/cards');
 const { current } = require('@openzeppelin/test-helpers/src/balance');
 
-contract('Dices', (accounts) => {
+contract('Coinflip', (accounts) => {
     let mainInstance;
     let coinflipInstance;
     let deployer = accounts[0];
@@ -97,10 +97,10 @@ contract('Dices', (accounts) => {
     it('Should reflect the players outcome after playing', async() => {
         let newFundsP1 = Number(await mainInstance.getFunds(player1, { from: player1 }));
         let newFundsP2 = Number(await mainInstance.getFunds(player2, { from: player2 }));
-        let winner = await coinflipInstance.lastWinner();
+        let winner = Number(await coinflipInstance.lastCoin());
         console.log(newFundsP1, newFundsP2, winner, funds[0], funds[1])
-        assert(winner == player1 || winner == player2, "Winner is neither player 1 or 2");
-        if(winner == player1){
+        assert(winner == 0 || winner == 1, "Winner is neither player 1 or 2");
+        if(winner == 0){
             assert(funds[0] + currentBet == newFundsP1, "Player 1 won but he doesn't have the new funds");
             assert(funds[1] - currentBet == newFundsP2, "Player 2 lost but he didn't lost his bet");
         } else {

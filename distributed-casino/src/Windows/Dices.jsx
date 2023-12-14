@@ -18,18 +18,13 @@ function Dices() {
     const [dices, setDices] = useState([])
     const [gamePhase, setGamePhase] = useState("Betting"); // The state of the game
     const [maxPlayers, setMaxPlayers] = useState(0); // The maximum amount of players in this room
-    const [minPlayers, setMinPlayers] = useState(2)
     const [wantsToJoin, setWantsToJoin] = useState(false); // If the user wants to join the game or not
     const [roundBet, setRoundBet] = useState(0); // The bet per round in the room
     const [vote, setVote] = useState(false); // If the user has voted for the start or not
-    const [gameEnded, setGameEnded] = useState(false); // If the game has ended
     const [players, setPlayers] = useState([]); // The structure of the users, reflects the blockchain status
 
     /* Event listener for contract events */
     const gameStateChanged = ({ playersIn, phase }) => {
-        if (phase == "Ended") {
-            setGameEnded(true);
-        }
         // First set the phase of the game to the received one
         setGamePhase(phase);
         setPlayers(playersIn)
@@ -89,7 +84,6 @@ function Dices() {
             });
             setPlayers([...players]);
             setWantsToJoin(true);
-            setGameEnded(false);
         });
         getRoomVariables()
     };
@@ -103,7 +97,6 @@ function Dices() {
         // Destroys all room variables and sends user to the join a game screen
         setWantsToJoin(false);
         setVote(false);
-        setGameEnded(false);
         setPlayers([]);
     };
     // Game actions, in Dices you can either hit (roll a dice) or stand (finish your turn)
@@ -174,8 +167,8 @@ function Dices() {
                                 </button>
                             </div>
                         </div>
-                    )})}
-                    {gameEnded && (
+                )})}
+                {gamePhase == "Ended" && (
                     <div className="col-6 d-flex flex-column flex-justify-center border border-light rounded m-2 p-3 bg-dark">
                         <h3 className="mb-2">
                             The game has ended!
@@ -202,7 +195,7 @@ function Dices() {
                         </div>
                         <button className="btn btn-primary fs-4" onClick={resetUI}>Play again!</button>
                     </div>
-            )}
+                )}
             </div>
             <aside className="col-3">
                 {players.filter((obj) =>  obj.addr != account).map((player,index) => (

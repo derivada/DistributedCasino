@@ -20,24 +20,27 @@ function CoinFlip() {
     const [coin, setCoin] = useState(true)
     const [gamePhase, setGamePhase] = useState("Betting"); // The state of the game
     const [wantsToJoin, setWantsToJoin] = useState(false); // If the user wants to join the game or not
-    const [gameEnded, setGameEnded] = useState(false); // If the game has ended
     const [players, setPlayers] = useState([]); // The structure of the users, reflects the blockchain status
+    const [currentBet, setCurrentBet] = useState([]); // The current bet in the room
 
     /* Event listener for contract events */
     const gameStateChanged = ({ playersIn, phase }) => {
-        if (phase == "Ended") {
-            setGameEnded(true);
-        }
-
+        console.log('UPDATING')
         setGamePhase(phase);
         setPlayers(playersIn);
-        coinContractService.getCoin(setCoin);
+        coinContractService.getCoin().then(setCoin);
+        coinContractService.getCurrentBet().then(setCurrentBet);
     };
 
     const getRoomVariables = () => {
         coinContractService.getPlayers().then(setPlayers)
+        coinContractService.getCurrentBet().then(setCurrentBet);
+        coinContractService.getGamePhase().then(phase => {
+            setGamePhase(phase)
+        })
+        coinContractService.getCoin().then(setCoin);
     };
-    console.log(players)
+    
     // To be done in account change.
     useEffect(() => {
         coinContractService.setupAccount(account);
@@ -50,7 +53,7 @@ function CoinFlip() {
             coinContractService.addGameStateListener(gameStateChanged);
         });
     }, []);
-
+    console.log(players)
     // Join the room, get the players already in the room and their voting status
     const joinRoom = () => {
         coinContractService.getPlayers().then((players) => {
@@ -62,7 +65,6 @@ function CoinFlip() {
             });
             setPlayers([...players]);
             setWantsToJoin(true);
-            setGameEnded(false);
         });
         getRoomVariables();
     };
@@ -70,8 +72,9 @@ function CoinFlip() {
     const resetUI = () => {
         // Destroys all room variables and sends user to the join a game screen
         setWantsToJoin(false);
-        setGameEnded(false);
+        setGamePhase("Ended");
         setPlayers([]);
+        coinContractService.getCurrentBet(setCurrentBet);
     };
     // Game actions, in Coins continue playing (wantsDouble = true) or retire (wantsDouble = false)
     const joinGame = () => coinContractService.joinGame();
@@ -79,7 +82,10 @@ function CoinFlip() {
         console.log('click')
         coinContractService.chooseSide(heads)
     }
-    const voteDouble = (vote) => coinContractService.voteDouble(vote)
+    const voteDouble = (vote) => {
+        console.log('voting double ', vote)
+        coinContractService.voteDouble(vote)
+    }
 
     // Helper function for retrieving a styled string with the status of a player based on his obj. attributes
     const getPlayerStatus = (player) => {
@@ -90,17 +96,33 @@ function CoinFlip() {
         return (<h6 className="font-monospace fw-semibold text-warning d-inline-block bg-dark p-1 rounded">Stood </h6>);
     };
 
-    const playersReady = () => (numPlayers() == 2 && players.filter(p=>p.hasVoted).length==2);
+    const playersReady = () => (gamePhase == "Playing");
 
     const numPlayers = () => players.filter(p => p.addr != ADDRESS_0).length
 
-    const coinComponent = () => (
-        <img key="coin" src={getCoinLocation(coin)} className="mx-1 rounded" height={100}/>
+    const playerWon = () => players.find(p => p.addr == account).betResult > 0
+
+    const resultComponent = () => (
+        <div>
+            <img src={getCoinLocation(coin)} className="mx-1 rounded" height={100}/>
+            {coin ? 
+                <div className={"fs-3 " + (playerWon() ? "text-primary": "text-danger")}>Heads won, {playerWon() ? "you won" : "you lost" } {currentBet} ETH </div> : 
+                <div className={"fs-3 " + (playerWon() ? "text-primary": "text-danger")}>Tails won, {playerWon() ? "you won" : "you lost" } {currentBet} ETH</div>
+            }
+        </div>
     )
 
+    const doublingComponent = () => (
+        <div className="d-flex justify-content-betwen p-2">
+            <button className="btn btn-primary fs-4 me-3" onClick={() => voteDouble(true)}>Double the bet</button>
+            <button className="btn btn-secondary fs-4" onClick={() => voteDouble(false)}>Leave the game</button>
+        </div>
+    )
     const playComponent = () => (
         <div className="row rounded">
             <div className="col-9">
+                {resultComponent()}
+
                 {players.filter((obj) => obj.addr == account).map((player) => {
                     return (
                         <div key={player.addr} className="m-2 p-3 rounded">
@@ -108,95 +130,71 @@ function CoinFlip() {
                                 <h1 className="me-2">You</h1>
                                 {getPlayerStatus(player)}
                             </div>
+                            <h3 className="text-secondary">Your side: {players.find(p => p.addr == account).side ? "Heads" : "Tails"}</h3>
                         </div>
                     );
                 })}
-                {coinComponent()}
-                {gameEnded && (
-                    <div className="col-6 d-flex flex-column flex-justify-center border border-light rounded m-2 p-3 bg-dark">
-                        <h3 className="mb-2">The game has ended!</h3>
-                        <div className="mb-2">
-                            {(() => {
-                                let player = players.find(
-                                    (obj) => obj.addr === account
-                                );
-                                let result = player && player.betResult ? player.betResult : 0;
-                                return (
-                                    <div>
-                                        {result > 0 ? (
-                                            <h3 className="text-success">
-                                                You won{" "}
-                                                <span className="ms-1 fst-bold">{result} ETH</span>
-                                            </h3>
-                                        ) : (
-                                            <h3 className="text-danger">
-                                                You lost{" "}
-                                                <span className="ms-1 fst-bold">{result} ETH</span>
-                                            </h3>
-                                        )}
-                                    </div>
-                                );
-                            })()}
-                        </div>
-                    </div>
-
-                )}
-                <div className="d-flex justify-content-betwen p-2">
-                    <button className="btn btn-primary fs-4 me-3" onClick={() => voteDouble(true)}>Double the bet</button>
-                    <button className="btn btn-secondary fs-4" onClick={() => voteDouble(false)}>Leave the game</button>
-                </div>
+                {doublingComponent()}
             </div>
             <aside className="col-3">
                 {players.filter((obj) => obj.addr != account).map((player, index) => (
-                        <div className="bg-dark m-2 p-3 rounded">
-                            <div className="d-flex align-items-center">
-                                <h5 className="me-2">
-                                    {player.addr.substring(0, 6)}...
-                                </h5>
-                                {getPlayerStatus(player)}
-                            </div>
-                            <p className="font-primary fw-semibold">{player.bet} ETH</p>
+                    <div className="bg-dark m-2 p-3 rounded">
+                        <div className="d-flex align-items-center">
+                            <h5 className="me-2">
+                                {player.addr.substring(0, 10)}...
+                            </h5>
+                            {getPlayerStatus(player)}
                         </div>
-                    ))}
+                        <h3 className="text-secondary">Their side: {player.side ? "Heads" : "Tails"}</h3>
+                        <p className={"fs-3 " + (player.betResult > 0? "text-primary" : "text-danger")}>{currentBet} ETH</p>
+                    </div>
+                ))}
             </aside>
         </div>
     );
 
     const isTaken = (heads) => (players.filter(p => p.side == heads).length == 0)
 
-    const chooseButton = (heads) => (
-        <button onClick={()=>chooseSide(heads)} enabled={()=>!isTaken(heads)} className="btn btn-dark m-3">
-            <img src={getCoinLocation(heads)} className="mx-1 rounded"height={100}/>
-            <h1>{heads? "Heads": "Tails"}</h1>
-        </button>);
+    const chooseButton = (side) => (
+        <button onClick={()=>chooseSide(side)} enabled={()=>!isTaken(side)} className="btn btn-dark m-3">
+            <img src={getCoinLocation(side)} className="mx-1 rounded"height={100}/>
+            <div className="flex flex-column justify-content-center">
+                <h1>{side? "Heads": "Tails"}</h1>
+                <span className="text-secondary fs-5">
+                    {(players.find(p => (p.side == side && p.hasVoted)) !== undefined) ? "(Already chosen)" : ""}
+                </span>
+            </div>
+        </button>
+    );
 
-    const waitingComponent = () => (-
+    const waitingComponent = () => (
         <>
-            <div className="p-2 rounded-2 mb-3 container">
-                <div className="row">
-                    <button onClick={joinGame} className="btn btn-outline-primary col-2">Enter round</button>
-                </div>
+            <div className="mt-4 d-flex flex-row align-content-center">
+                <button onClick={joinGame} className="btn btn-outline-primary col-2 me-3">Enter round</button>
+                <p className="fw-semibold"> Current bet: <span className="text-primary">{currentBet} ETH</span></p>
             </div>
-            <div className="p-2 rounded-2 mb-3 container">
-                <div className="row">
-                    <div className="fs-4 col">
-                        Players ready:
-                        <span className="text-warning ms-3 me-1">
-                            {numPlayers()}
-                        </span>
-                        /
-                        <span className="text-primary px-1">2</span>
-                    </div>
-                   
-                </div>
-                <div className="fs-4 d-flex flex-column">
-                        <h3 className="text-primary">Choose your side:</h3>
-                        <div className="d-flex">
-                            {chooseButton(true)}
-                            {chooseButton(false)}
+            {players.find(player => player.addr == account) !== undefined && (
+                <div className="p-2 rounded-2 mb-3 container">
+                    <div className="row">
+                        <div className="fs-4 col">
+                            Players joined:
+                            <span className="text-warning ms-3 me-1">
+                                {numPlayers()}
+                            </span>
+                            /
+                            <span className="text-primary px-1">2</span>
                         </div>
+                    
                     </div>
-            </div>
+                    <div className="fs-4 d-flex flex-column">
+                            <h3 className="text-primary">Choose your side:</h3>
+                            <div className="d-flex">
+                                {chooseButton(true)}
+                                {chooseButton(false)}
+                            </div>
+                        </div>
+                </div>
+            )}
         </>
     );
 
@@ -212,8 +210,10 @@ function CoinFlip() {
 
     const gameStartedComponent = () => {
         console.log(players)
-        if (players.filter((aux) => aux.addr == account).length == 1)
+        if (players.filter((aux) => aux.addr == account).length == 1) {
+
             return playComponent();
+        }
         return noJoinComponent();
     };
 
@@ -232,7 +232,7 @@ function CoinFlip() {
                     <div className="d-flex justify-content-between">
                         <h1 className="fw-bold">Coin Flip!!!</h1>
                         <div className="text-end">
-                            <div>Play responsibly</div>
+                            <div className="fst-italic">Play responsibly (or not)</div>
                         </div>
                     </div>
                     {!wantsToJoin ? (
@@ -263,7 +263,7 @@ function CoinFlip() {
                         </div>
                     )}
                 </main>
-                <FundsControl update={gamePhase} />
+                <FundsControl update={[currentBet,coin,players]} />
             </div>
         </div>
     );
