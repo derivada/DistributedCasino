@@ -4,6 +4,12 @@ const StructsLibrary = artifacts.require('Structs');
 const DicesContract = artifacts.require('Dices');
 const CoinflipContract = artifacts.require('Coinflip');
 
+const fs = require('fs-extra');
+const path = require('path');
+
+const sourceDirectory =  path.join('build', 'contracts');
+const destinationDirectory = path.join('distributed-casino', 'src', 'Contracts');
+
 const Web3 = require('web3');
 
 module.exports = async function (deployer) {
@@ -30,4 +36,14 @@ module.exports = async function (deployer) {
     await mainContract.addGameContract(dicesContract.address);
     await mainContract.addGameContract(coinflipContract.address);
 
+    console.log('Contracts ready');
+
+    // Copy the JSON ABI of the contracts to the frontend folder
+    fs.ensureDirSync(destinationDirectory);
+    fs.readdirSync(sourceDirectory).forEach(file => {
+        const sourcePath = path.join(sourceDirectory, file);
+        const destinationPath = path.join(destinationDirectory, file);
+        fs.copyFileSync(sourcePath, destinationPath);
+    });
+    console.log('JSON artifacts copied to another folder.');
 };

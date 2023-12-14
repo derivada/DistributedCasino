@@ -193,8 +193,8 @@ contract('Dices', (accounts) => {
         let totalBettedP1 = roundBet * 2;
         let totalBettedP2 = roundBet * 3;
         let initialMoney = roundBet * numberOfRounds + 1;
-        let p1Money = await mainInstance.getFunds(player1, {from: player1});
-        let p2Money = await mainInstance.getFunds(player2, {from: player2});
+        let p1Money = Number(await mainInstance.getFunds(player1, {from: player1}));
+        let p2Money = Number(await mainInstance.getFunds(player2, {from: player2}));
         if(totals1 == totals2) {
             // both won
             assert(initialMoney == p1Money, "Players tied, but player 1 didn't maintain his money");

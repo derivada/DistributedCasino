@@ -17,6 +17,7 @@ Since we are not deploying this contracts to any actual network, we tested the i
 - React and Bootstrap for the frontend
 
 ### Usage
-To compile the contracts and move the ABI to the frontend folder, use `truffle init && node move.js`
-To test the contracts use `truffle test`
-To run the frontend run `yarn install` and then `yarn start` in `/distributed-casino`
+1. First open ganache and set a network on port 7545
+2. To compile the contracts, use `truffle migrate`
+3. To test the contracts use `truffle test`
+4. To run the frontend first install the NPM libraries using `yarn install` and then start the server `yarn start` in `/distributed-casino`
